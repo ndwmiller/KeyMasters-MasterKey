@@ -51,3 +51,29 @@ def test_revoked_session_401(monkeypatch):
     client = _build_app(store)
     r = client.get("/protected", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 401
+
+
+def test_cookie_auth_works(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET", "x" * 32)
+    store = SessionStore(ttl_seconds=60)
+    sid = store.create(user_id=9, key=b"\x00" * 32)
+    token = issue_token({"sub": "9", "sid": sid}, "x" * 32)
+    client = _build_app(store)
+    client.cookies.set("mk_session", token)
+    r = client.get("/protected")
+    assert r.status_code == 200
+    assert r.json()["user_id"] == 9
+
+
+def test_header_wins_over_cookie(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET", "x" * 32)
+    store = SessionStore(ttl_seconds=60)
+    sid = store.create(user_id=9, key=b"\x00" * 32)
+    good = issue_token({"sub": "9", "sid": sid}, "x" * 32)
+    client = _build_app(store)
+    client.cookies.set("mk_session", "garbage")
+    r = client.get(
+        "/protected",
+        headers={"Authorization": f"Bearer {good}"},
+    )
+    assert r.status_code == 200

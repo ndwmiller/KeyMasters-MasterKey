@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import Depends, Header, Request
+from fastapi import Cookie, Depends, Header, Request
 
 from app.auth.jwt import JWTError, decode_token
 from app.auth.session_store import SessionStore
@@ -18,13 +18,20 @@ class CurrentSession:
     key: bytes
 
 
+def _extract_token(authorization: str, cookie_token: str | None) -> str:
+    if authorization.lower().startswith("bearer "):
+        return authorization.split(" ", 1)[1]
+    if cookie_token:
+        return cookie_token
+    raise AuthError()
+
+
 def get_current_session(
     authorization: str = Header(default=""),
+    mk_session: str | None = Cookie(default=None),
     sessions: SessionStore = Depends(get_session_store),
 ) -> CurrentSession:
-    if not authorization.lower().startswith("bearer "):
-        raise AuthError()
-    token = authorization.split(" ", 1)[1]
+    token = _extract_token(authorization, mk_session)
     try:
         claims = decode_token(token, get_settings().jwt_secret)
     except JWTError:
