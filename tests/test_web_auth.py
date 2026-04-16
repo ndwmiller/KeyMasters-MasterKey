@@ -92,10 +92,10 @@ def test_login_post_unknown_user_same_as_wrong_password(client):
     assert r.headers["location"] == "/login"
 
 
-def test_expired_reason_shows_flash(client):
-    r = client.get("/login?reason=expired")
+def test_required_reason_shows_flash(client):
+    r = client.get("/login?reason=required")
     assert r.status_code == 200
-    assert "session expired" in r.text.lower()
+    assert "unlock the vault" in r.text.lower()
 
 
 def test_register_get_renders_form(client):

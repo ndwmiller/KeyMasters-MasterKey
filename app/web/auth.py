@@ -57,9 +57,7 @@ def _render_login(request: Request, reason: str | None, error: str | None) -> Re
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
     if error:
         flashes = [*flashes, ("error", error)]
-    if reason == "expired":
-        flashes = [*flashes, ("info", "Your session expired, please unlock again.")]
-    elif reason == "required":
+    if reason == "required":
         flashes = [*flashes, ("info", "Please unlock the vault to continue.")]
     templates = request.app.state.templates
     response = templates.TemplateResponse(
