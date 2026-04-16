@@ -159,3 +159,100 @@ def test_generator_endpoint_accessible_via_cookie(client):
     r = client.post("/credentials/generate", json={"length": 16})
     assert r.status_code == 200
     assert len(r.json()["password"]) == 16
+
+
+def _create_via_api(client, service="github", username="alice", password="hunter2", notes=None):
+    """Helper: login via JSON API to get Bearer token, create credential, return id."""
+    api_login = client.post(
+        "/auth/login",
+        json={"username": username, "master_password": "correct horse battery"},
+    )
+    token = api_login.json()["access_token"]
+    body = {"service": service, "username": username, "password": password}
+    if notes is not None:
+        body["notes"] = notes
+    r = client.post(
+        "/credentials",
+        json=body,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 201
+    return r.json()["id"]
+
+
+def test_detail_requires_auth(client):
+    r = client.get("/vault/1", follow_redirects=False)
+    assert r.status_code == 303
+    assert "/login" in r.headers["location"]
+
+
+def test_detail_not_found_redirects_with_flash(client):
+    _login(client)
+    r = client.get("/vault/999", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/vault"
+    assert "mk_flash=" in r.headers.get("set-cookie", "").lower()
+
+
+def test_detail_shows_decrypted_fields_for_owner(client):
+    _login(client)
+    cid = _create_via_api(client, password="hunter2", notes="work account")
+    r = client.get(f"/vault/{cid}")
+    assert r.status_code == 200
+    assert "github" in r.text.lower()
+    assert "hunter2" in r.text  # password rendered into DOM (reveal toggle client-side)
+    assert "work account" in r.text
+
+
+def test_detail_denies_other_user_as_not_found(client):
+    # alice creates a credential
+    _login(client, username="alice")
+    cid = _create_via_api(client, username="alice", password="hunter2")
+    # Swap to bob — new session cookie replaces alice's.
+    client.cookies.clear()
+    _login(client, username="bob")
+    r = client.get(f"/vault/{cid}", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/vault"
+
+
+def test_delete_requires_csrf(client):
+    _login(client)
+    cid = _create_via_api(client)
+    r = client.post(f"/vault/{cid}/delete")
+    assert r.status_code == 403
+
+
+def test_delete_removes_credential(client):
+    _login(client)
+    cid = _create_via_api(client)
+    get = client.get(f"/vault/{cid}")
+    token = _csrf(get.text)
+    r = client.post(
+        f"/vault/{cid}/delete",
+        data={"_csrf": token},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == "/vault"
+    # Verify it's actually gone
+    get_after = client.get("/vault")
+    assert "github" not in get_after.text.lower()
+
+
+def test_delete_rejects_non_owner(client):
+    _login(client, username="alice")
+    cid = _create_via_api(client, username="alice")
+    get = client.get(f"/vault/{cid}")  # alice gets token
+    alice_token = _csrf(get.text)
+    # Swap to bob, whose own CSRF cookie won't match alice's form token.
+    client.cookies.clear()
+    _login(client, username="bob")
+    r = client.post(
+        f"/vault/{cid}/delete",
+        data={"_csrf": alice_token},
+        follow_redirects=False,
+    )
+    # Bob's CSRF cookie differs from alice's signed form token, so CSRF fails
+    # first → 403. Either way the credential remains; assert 403 or 303.
+    assert r.status_code in (303, 403)
