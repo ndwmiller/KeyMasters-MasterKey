@@ -42,7 +42,9 @@ function attachMatch(passEl, confirmEl, hintEl) {
   confirmEl.addEventListener("input", check);
 }
 
-const pass = document.querySelector('input[name="master_password"]');
+const pass =
+  document.querySelector('input[name="master_password"]') ||
+  document.querySelector('input[name="password"]');
 const confirm = document.querySelector('input[name="confirm_password"]');
 attachMeter(pass, document.getElementById("strength-bar"), document.getElementById("strength-label"));
 attachMatch(pass, confirm, document.getElementById("match-hint"));
