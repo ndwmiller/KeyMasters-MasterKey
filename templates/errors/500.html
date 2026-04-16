@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong · Master Key{% endblock %}
+{% block content %}
+<main class="min-h-screen flex items-center justify-center px-4">
+  <div class="text-center max-w-md">
+    <div class="inline-flex items-center justify-center p-6 bg-surface-container-highest rounded-full mb-6">
+      <span class="material-symbols-outlined text-5xl text-slate-500">error</span>
+    </div>
+    <h1 class="font-headline font-extrabold text-4xl text-on-background mb-2">500</h1>
+    <p class="text-secondary mb-8">An internal error occurred. No credentials were exposed.</p>
+    <a href="/vault" class="inline-block primary-gradient text-on-primary font-bold px-6 py-3 rounded-md shadow-lg">Back to Vault</a>
+  </div>
+</main>
+{% endblock %}
