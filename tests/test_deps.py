@@ -77,3 +77,26 @@ def test_header_wins_over_cookie(monkeypatch):
         headers={"Authorization": f"Bearer {good}"},
     )
     assert r.status_code == 200
+
+
+def test_expired_cookie_token_rejected(monkeypatch):
+    from datetime import timedelta
+    monkeypatch.setenv("JWT_SECRET", "x" * 32)
+    store = SessionStore(ttl_seconds=60)
+    sid = store.create(user_id=9, key=b"\x00" * 32)
+    expired = issue_token({"sub": "9", "sid": sid}, "x" * 32, ttl=timedelta(seconds=-1))
+    client = _build_app(store)
+    client.cookies.set("mk_session", expired)
+    r = client.get("/protected")
+    assert r.status_code == 401
+
+
+def test_malformed_bearer_does_not_fall_back_to_cookie(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET", "x" * 32)
+    store = SessionStore(ttl_seconds=60)
+    sid = store.create(user_id=9, key=b"\x00" * 32)
+    good = issue_token({"sub": "9", "sid": sid}, "x" * 32)
+    client = _build_app(store)
+    client.cookies.set("mk_session", good)
+    r = client.get("/protected", headers={"Authorization": "Bearer garbage"})
+    assert r.status_code == 401

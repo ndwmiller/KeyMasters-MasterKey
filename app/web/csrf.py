@@ -18,6 +18,10 @@ def issue_token(secret: str) -> str:
 def validate(secret: str, cookie_value: str | None, form_value: str | None) -> bool:
     if not cookie_value or not form_value:
         return False
+    # Compare cookie and form token first (constant-time), then verify the
+    # signature — order doesn't affect security here because a signature-valid
+    # but mismatched pair still fails, but this ordering short-circuits the
+    # common "no cookie / no form field" case before paying the signature cost.
     if not hmac.compare_digest(cookie_value, form_value):
         return False
     try:
