@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.errors import register_error_handlers
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.web.auth import router as web_auth_router
+from app.web.vault import router as web_vault_router
 
 _ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES = Jinja2Templates(directory=str(_ROOT / "templates"))
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(credentials_router)
     app.include_router(web_auth_router)
+    app.include_router(web_vault_router)
     static_dir = _ROOT / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
