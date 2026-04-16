@@ -56,15 +56,26 @@ def vault_list(
     settings = get_settings()
     credentials = repo.list_credentials_for_user(settings.db_path, session.user_id)
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
+    token = csrf.issue_token(settings.jwt_secret)
     templates = request.app.state.templates
     response = templates.TemplateResponse(
         request,
         "vault/list.html",
         {
             "credentials": credentials,
+            "csrf_token": token,
             "active_nav": "vault",
             "flashes": flashes,
         },
+    )
+    response.set_cookie(
+        csrf.COOKIE_NAME,
+        token,
+        max_age=15 * 60,
+        httponly=True,
+        samesite="strict",
+        secure=False,
+        path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
     return response

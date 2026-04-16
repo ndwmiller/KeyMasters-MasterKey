@@ -196,3 +196,39 @@ def test_register_post_missing_csrf_403(client):
         },
     )
     assert r.status_code == 403
+
+
+def test_logout_csrf_required(client):
+    r = client.post("/logout", data={})
+    assert r.status_code == 403
+
+
+def test_logout_clears_session_and_redirects(client):
+    _register_api(client)
+    # Login via HTML to establish cookies
+    get = client.get("/login")
+    token = _csrf(get.text)
+    login = client.post(
+        "/login",
+        data={"username": "alice", "master_password": "correct horse battery", "_csrf": token},
+        follow_redirects=False,
+    )
+    assert login.status_code == 303
+    # Grab a fresh CSRF token from a page that has one (e.g. /login again, or /vault)
+    vault = client.get("/vault")
+    assert vault.status_code == 200
+    # The vault list has a logout form in the topbar — extract its CSRF
+    logout_token = _csrf(vault.text)
+    r = client.post(
+        "/logout",
+        data={"_csrf": logout_token},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == "/login"
+    set_cookie = r.headers.get("set-cookie", "").lower()
+    assert 'mk_session=""' in set_cookie or "mk_session=;" in set_cookie
+    # Accessing /vault after logout → redirect back to login
+    after = client.get("/vault", follow_redirects=False)
+    assert after.status_code == 303
+    assert "/login" in after.headers["location"]

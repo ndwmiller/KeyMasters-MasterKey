@@ -5,7 +5,7 @@ from fastapi import APIRouter, Cookie, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 
-from app.auth.jwt import issue_token
+from app.auth.jwt import JWTError, decode_token, issue_token
 from app.auth.kdf import derive_key, new_salt
 from app.auth.password import hash_master_password, verify_master_password
 from app.config import get_settings
@@ -202,3 +202,39 @@ def register_post(
         master_password=valid.master_password,
         kdf_salt=kdf_salt,
     )
+
+
+@router.post("/logout", name="web_logout")
+def logout_post(
+    request: Request,
+    csrf_token: str | None = Form(default=None, alias="_csrf"),
+    mk_csrf: str | None = Cookie(default=None),
+    mk_session: str | None = Cookie(default=None),
+) -> Response:
+    settings = get_settings()
+    if not csrf.validate(settings.jwt_secret, mk_csrf, csrf_token):
+        raise HTTPException(status_code=403, detail="csrf failed")
+
+    # Best-effort session cleanup. Logout is idempotent — if the token is
+    # missing or undecodable, we still clear cookies and redirect.
+    if mk_session:
+        try:
+            claims = decode_token(
+                mk_session,
+                settings.jwt_secret,
+                algorithm=settings.jwt_algorithm,
+            )
+            sid = claims.get("sid")
+            if isinstance(sid, str):
+                request.app.state.sessions.delete(sid)
+        except JWTError:
+            pass
+
+    redirect = _redirect_with_flash(
+        "/login",
+        settings.jwt_secret,
+        [("success", "You have been locked out.")],
+    )
+    redirect.delete_cookie("mk_session", path="/")
+    redirect.delete_cookie(csrf.COOKIE_NAME, path="/")
+    return redirect
