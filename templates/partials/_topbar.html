@@ -1,0 +1,20 @@
+{# Later tasks may switch `/vault` and `/logout` to `url_for('web_vault_list')` / `url_for('web_logout')` once those named routes exist. #}
+<nav class="fixed top-0 left-0 right-0 md:left-64 z-30 bg-slate-950/70 backdrop-blur-xl border-b border-emerald-500/10 shadow-[0_24px_40px_-15px_rgba(11,19,38,0.4)]">
+  <div class="flex justify-between items-center px-6 py-4">
+    <div class="flex items-center gap-4">
+      <a class="flex items-center gap-2" href="/vault">
+        <span class="text-xl font-bold tracking-tight text-emerald-400 font-headline">Master Key</span>
+      </a>
+      <span class="h-4 w-px bg-slate-800 hidden md:block"></span>
+      <span class="text-slate-400 font-inter text-sm hidden md:block">Active Vault: Primary</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <form action="/logout" method="post" class="inline">
+        {% if csrf_token is defined %}<input type="hidden" name="_csrf" value="{{ csrf_token }}">{% endif %}
+        <button class="text-slate-400 hover:text-slate-100 active:scale-95 transition-all" type="submit" title="Lock vault">
+          <span class="material-symbols-outlined">lock_open</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</nav>

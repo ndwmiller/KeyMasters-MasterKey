@@ -1,0 +1,13 @@
+{% set _flashes = flashes | default([]) %}
+{% if _flashes %}
+<div class="fixed top-20 right-6 z-50 space-y-2">
+  {% for category, msg in _flashes %}
+    <div class="px-4 py-3 rounded-md border text-sm
+      {% if category == 'error' %}bg-error-container/20 border-error/40 text-error
+      {% elif category == 'success' %}bg-primary/10 border-primary/40 text-primary
+      {% else %}bg-surface-container-high border-outline-variant/20 text-on-surface{% endif %}">
+      {{ msg }}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
