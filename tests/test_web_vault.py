@@ -256,3 +256,72 @@ def test_delete_rejects_non_owner(client):
     # Bob's CSRF cookie differs from alice's signed form token, so CSRF fails
     # first → 403. Either way the credential remains; assert 403 or 303.
     assert r.status_code in (303, 403)
+
+
+def test_edit_requires_auth(client):
+    r = client.get("/vault/1/edit", follow_redirects=False)
+    assert r.status_code == 303
+    assert "/login" in r.headers["location"]
+
+
+def test_edit_get_renders_prefilled_form(client):
+    _login(client)
+    cid = _create_via_api(client, service="github", username="alice", password="hunter2", notes="work")
+    r = client.get(f"/vault/{cid}/edit")
+    assert r.status_code == 200
+    assert 'name="service"' in r.text
+    assert 'value="github"' in r.text
+    assert "hunter2" in r.text  # pre-filled
+    assert "work" in r.text
+    assert 'name="_csrf"' in r.text
+
+
+def test_edit_not_found_redirects(client):
+    _login(client)
+    r = client.get("/vault/9999/edit", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/vault"
+
+
+def test_edit_post_updates_and_redirects(client):
+    _login(client)
+    cid = _create_via_api(client, service="github", password="hunter2")
+    get = client.get(f"/vault/{cid}/edit")
+    token = _csrf(get.text)
+    r = client.post(
+        f"/vault/{cid}/edit",
+        data={
+            "service": "github",
+            "username": "alice",
+            "password": "hunter3",
+            "notes": "updated",
+            "_csrf": token,
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == f"/vault/{cid}"
+    # Verify the change actually landed
+    detail = client.get(f"/vault/{cid}")
+    assert "hunter3" in detail.text
+    assert "updated" in detail.text
+
+
+def test_edit_missing_csrf_403(client):
+    _login(client)
+    cid = _create_via_api(client)
+    r = client.post(
+        f"/vault/{cid}/edit",
+        data={"service": "github", "username": "u", "password": "p"},
+    )
+    assert r.status_code == 403
+
+
+def test_edit_cross_user_treated_as_not_found(client):
+    _login(client, username="alice")
+    cid = _create_via_api(client, username="alice")
+    client.cookies.clear()
+    _login(client, username="bob")
+    r = client.get(f"/vault/{cid}/edit", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/vault"
