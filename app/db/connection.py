@@ -27,8 +27,12 @@ CREATE INDEX IF NOT EXISTS ix_credentials_user ON credentials(user_id);
 
 def init_schema(db_path: str) -> None:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(db_path) as conn:
+    conn = sqlite3.connect(db_path)
+    try:
         conn.executescript(SCHEMA)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 @contextmanager
