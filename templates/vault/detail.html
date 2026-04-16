@@ -99,7 +99,7 @@
             Edit
           </a>
           <form method="post" action="/vault/{{ credential.id }}/delete"
-            onsubmit="return confirm('Delete this credential? This cannot be undone.');">
+            data-confirm="Delete this credential? This cannot be undone.">
             <input type="hidden" name="_csrf" value="{{ csrf_token }}">
             <button type="submit"
               class="bg-error/10 hover:bg-error/20 text-error border border-error/30 font-headline font-bold px-5 py-2.5 rounded-md transition-all active:scale-95 flex items-center gap-2">
@@ -118,4 +118,5 @@
 {% block scripts %}
 <script type="module" src="{{ url_for('static', path='/js/reveal.js') }}"></script>
 <script type="module" src="{{ url_for('static', path='/js/copy.js') }}"></script>
+<script src="{{ url_for('static', path='/js/confirm.js') }}"></script>
 {% endblock %}

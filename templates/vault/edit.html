@@ -35,19 +35,19 @@
             </div>
 
             <div class="space-y-2">
-              <label class="text-xs font-bold text-on-surface-variant tracking-wider uppercase" for="password">Password</label>
+              <label class="text-xs font-bold text-on-surface-variant tracking-wider uppercase" for="password-input">Password</label>
               <div class="relative">
-                <input id="password" name="password" type="password" required minlength="1" maxlength="1024"
+                <input id="password-input" name="password" type="password" required minlength="1" maxlength="1024"
                   value="{{ credential.password | e }}"
                   class="w-full bg-surface-container-lowest border-none rounded-md py-4 pl-4 pr-24 text-on-surface focus:ring-0 focus:bg-surface-bright transition-all placeholder:text-slate-600 font-mono"
                   placeholder="••••••••••••">
                 <div class="absolute inset-y-0 right-2 flex items-center gap-1">
-                  <button type="button" id="password-reveal"
+                  <button type="button" data-reveal-target="password-input"
                     class="p-2 rounded-md text-slate-400 hover:text-emerald-300 hover:bg-slate-800/60 transition-all"
                     title="Reveal or hide password" aria-label="Reveal or hide password">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">visibility</span>
                   </button>
-                  <button type="button" id="password-regen"
+                  <button type="button" data-regen-trigger
                     class="p-2 rounded-md text-slate-400 hover:text-emerald-300 hover:bg-slate-800/60 transition-all"
                     title="Regenerate password" aria-label="Regenerate password">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">refresh</span>
@@ -137,27 +137,5 @@
 {% block scripts %}
 <script type="module" src="{{ url_for('static', path='/js/strength.js') }}"></script>
 <script type="module" src="{{ url_for('static', path='/js/generator.js') }}"></script>
-<script>
-  (() => {
-    const reveal = document.getElementById("password-reveal");
-    const regen = document.getElementById("password-regen");
-    const genBtn = document.getElementById("generator-btn");
-    const field = document.querySelector('input[name="password"]');
-    if (reveal && field) {
-      reveal.addEventListener("click", () => {
-        const icon = reveal.querySelector(".material-symbols-outlined");
-        if (field.type === "password") {
-          field.type = "text";
-          if (icon) icon.textContent = "visibility_off";
-        } else {
-          field.type = "password";
-          if (icon) icon.textContent = "visibility";
-        }
-      });
-    }
-    if (regen && genBtn) {
-      regen.addEventListener("click", () => genBtn.click());
-    }
-  })();
-</script>
+<script src="{{ url_for('static', path='/js/password-form.js') }}"></script>
 {% endblock %}
