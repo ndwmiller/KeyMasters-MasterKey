@@ -23,6 +23,4 @@ pytest --cov=app --cov-report=term-missing                  # coverage
 
 ## Stack
 
-FastAPI · SQLite · bcrypt · PBKDF2 · JWT (HS256) · Fernet (AES-256)
-
-See project docs for architecture, security invariants, and team interfaces.
+FastAPI · SQLite · bcrypt · PBKDF2 · JWT (HS256) · AES-256-GCM
