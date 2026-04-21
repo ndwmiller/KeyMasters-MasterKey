@@ -56,7 +56,7 @@ def vault_list(
     settings = get_settings()
     credentials = repo.list_credentials_for_user(settings.db_path, session.user_id)
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
-    token = csrf.issue_token(settings.jwt_secret)
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
     templates = request.app.state.templates
     response = templates.TemplateResponse(
         request,
@@ -92,7 +92,7 @@ def vault_new_get(
     if session is None:
         return RedirectResponse(url="/login?reason=required", status_code=303)
     settings = get_settings()
-    token = csrf.issue_token(settings.jwt_secret)
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
     templates = request.app.state.templates
     response = templates.TemplateResponse(
@@ -204,7 +204,7 @@ def vault_detail(
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
-    token = csrf.issue_token(settings.jwt_secret)
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
     templates = request.app.state.templates
     response = templates.TemplateResponse(
@@ -262,7 +262,7 @@ def vault_edit_get(
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
-    token = csrf.issue_token(settings.jwt_secret)
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
     templates = request.app.state.templates
     response = templates.TemplateResponse(

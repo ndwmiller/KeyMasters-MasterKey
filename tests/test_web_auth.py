@@ -198,6 +198,29 @@ def test_register_post_missing_csrf_403(client):
     assert r.status_code == 403
 
 
+def test_csrf_cookie_stable_across_page_navigations(client):
+    # Regression: navigating GET /login -> GET /register must NOT rotate the
+    # CSRF cookie. Previously every render minted a fresh token and
+    # overwrote the cookie, desyncing from the form token still held by
+    # earlier-rendered pages (back-button / multi-tab). That broke POST /login.
+    _register_api(client)
+    get_login = client.get("/login")
+    form_token = _csrf(get_login.text)
+    # User clicks "register" then goes back to the login tab.
+    client.get("/register")
+    r = client.post(
+        "/login",
+        data={
+            "username": "alice",
+            "master_password": "correct horse battery",
+            "_csrf": form_token,
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == "/vault"
+
+
 def test_logout_csrf_required(client):
     r = client.post("/logout", data={})
     assert r.status_code == 403

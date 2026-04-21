@@ -15,6 +15,19 @@ def issue_token(secret: str) -> str:
     return _serializer(secret).dumps(secrets.token_urlsafe(16))
 
 
+def ensure_token(secret: str, existing_cookie: str | None) -> str:
+    # Reuse the cookie's token if it is still signature-valid; otherwise
+    # mint a new one. Rotating on every render desyncs forms held by
+    # other tabs / back-button navigations from the cookie.
+    if existing_cookie:
+        try:
+            _serializer(secret).loads(existing_cookie)
+            return existing_cookie
+        except BadSignature:
+            pass
+    return issue_token(secret)
+
+
 def validate(secret: str, cookie_value: str | None, form_value: str | None) -> bool:
     if not cookie_value or not form_value:
         return False

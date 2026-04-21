@@ -53,7 +53,7 @@ def _issue_session_cookie(
 
 def _render_login(request: Request, reason: str | None, error: str | None) -> Response:
     settings = get_settings()
-    token = csrf.issue_token(settings.jwt_secret)
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
     if error:
         flashes = [*flashes, ("error", error)]
@@ -81,7 +81,7 @@ def _render_login(request: Request, reason: str | None, error: str | None) -> Re
 
 def _render_register(request: Request) -> Response:
     settings = get_settings()
-    token = csrf.issue_token(settings.jwt_secret)
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
     templates = request.app.state.templates
     response = templates.TemplateResponse(
