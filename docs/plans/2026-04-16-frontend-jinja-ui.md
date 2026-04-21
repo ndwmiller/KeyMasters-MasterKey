@@ -30,7 +30,7 @@ Interactivity is plain vanilla JS in small per-page modules loaded from `/static
 
 ## Security Contract (must all hold)
 
-Beyond the backend invariants in project docs, the UI adds:
+Beyond the backend invariants, the UI adds:
 
 1. **Jinja auto-escape is on everywhere.** No `| safe` on user content. Ever.
 2. **Cookies:** `HttpOnly` (no JS access), `Secure` (HTTPS only — we set it True in prod, False in tests), `SameSite=Strict`, scoped to `/`.
@@ -854,7 +854,7 @@ def test_full_html_journey(client):
 
 ---
 
-## Task 13: Update project docs
+## Task 13: Update README
 
 Add:
 
