@@ -8,6 +8,7 @@ from app.api.auth import router as auth_router
 from app.api.credentials import router as credentials_router
 from app.auth.session_store import SessionStore
 from app.config import get_settings
+from app.db.connection import init_schema
 from app.errors import register_error_handlers
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.web.auth import router as web_auth_router
@@ -20,6 +21,7 @@ TEMPLATES = Jinja2Templates(directory=str(_ROOT / "templates"))
 def create_app() -> FastAPI:
     app = FastAPI(title="Master Key", version="0.1.0")
     settings = get_settings()
+    init_schema(settings.db_path)
     app.state.sessions = SessionStore(ttl_seconds=settings.session_ttl_minutes * 60)
     app.state.templates = TEMPLATES
     app.add_middleware(SecurityHeadersMiddleware)
