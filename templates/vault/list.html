@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Vault · Master Key{% endblock %}
+{% block layout %}
+{% include "partials/_sidebar.html" %}
+{% include "partials/_topbar.html" %}
+<main class="md:ml-64 pt-20 pb-24 px-6 min-h-screen">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+      <div>
+        <span class="font-inter font-medium tracking-wide uppercase text-[10px] text-primary mb-2 block">Security Overview</span>
+        <h2 class="font-headline font-bold text-3xl text-on-surface">All Items</h2>
+        <p class="text-sm text-secondary mt-1">{{ credentials | length }} credential{% if credentials | length != 1 %}s{% endif %} in your vault.</p>
+      </div>
+      <div class="flex gap-3">
+        <label class="relative hidden md:flex items-center">
+          <span class="material-symbols-outlined absolute left-3 text-slate-600 text-xl pointer-events-none">search</span>
+          <input type="text" disabled placeholder="Search coming soon"
+            class="bg-surface-container-high border border-white/5 rounded-xl py-3 pl-10 pr-4 text-sm text-slate-500 placeholder:text-slate-600 focus:outline-none cursor-not-allowed opacity-60 w-64">
+        </label>
+        <a href="/vault/new" class="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-headline font-bold px-6 py-3 rounded-xl transition-all active:scale-95 flex items-center gap-2">
+          <span class="material-symbols-outlined">add</span>
+          Add New
+        </a>
+      </div>
+    </div>
+
+    {% if credentials %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {% for c in credentials %}
+      <a href="/vault/{{ c.id }}" class="group bg-surface-container-high hover:bg-surface-container-highest transition-all duration-300 p-5 rounded-xl border border-white/5 block">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center border border-white/5 text-slate-400 flex-shrink-0">
+            <span class="material-symbols-outlined">key</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-headline font-bold text-lg text-on-surface truncate">{{ c.service }}</h3>
+            <p class="font-inter text-xs text-slate-500 truncate">Updated {{ c.updated_at[:10] }}</p>
+          </div>
+          <span class="material-symbols-outlined text-slate-600 group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="mt-6 flex items-center justify-between bg-surface-container-lowest rounded-lg p-3 border border-white/5">
+          <code class="font-mono text-xs text-slate-500 tracking-widest">••••••••••••••</code>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500" title="Open to view strength">Encrypted</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-surface-container-high rounded-xl p-12 border border-white/5 text-center">
+      <span class="material-symbols-outlined text-6xl text-slate-600 mb-4 block">inventory_2</span>
+      <h3 class="font-headline font-bold text-xl text-on-surface mb-2">Your vault is empty</h3>
+      <p class="text-secondary mb-6">Add your first credential to get started.</p>
+      <a href="/vault/new" class="inline-block primary-gradient text-on-primary font-bold px-6 py-3 rounded-md shadow-lg">
+        Add Credential
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% include "partials/_mobile_nav.html" %}
+{% endblock %}
