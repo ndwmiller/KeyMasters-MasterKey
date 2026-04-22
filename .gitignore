@@ -9,3 +9,7 @@ venv/
 .coverage
 htmlcov/
 .DS_Store
+Thumbs.db
+
+# Claude
+.claude/
