@@ -38,13 +38,15 @@ def _issue_session_cookie(
         ttl=timedelta(minutes=settings.jwt_ttl_minutes),
         algorithm=settings.jwt_algorithm,
     )
+    # secure=True prevents the cookie from being sent over plain http.
+    # we only enable it when the connection is already https so localhost still works.
     response.set_cookie(
         "mk_session",
         token,
         max_age=settings.jwt_ttl_minutes * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(csrf.COOKIE_NAME, path="/")
@@ -71,7 +73,7 @@ def _render_login(request: Request, reason: str | None, error: str | None) -> Re
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     # Clear consumed flashes
@@ -95,14 +97,14 @@ def _render_register(request: Request) -> Response:
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
     return response
 
 
-def _redirect_with_flash(url: str, secret: str, messages: list[tuple[str, str]]) -> RedirectResponse:
+def _redirect_with_flash(request: Request, url: str, secret: str, messages: list[tuple[str, str]]) -> RedirectResponse:
     redirect = RedirectResponse(url=url, status_code=303)
     redirect.set_cookie(
         flash.COOKIE_NAME,
@@ -110,7 +112,7 @@ def _redirect_with_flash(url: str, secret: str, messages: list[tuple[str, str]])
         max_age=60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     return redirect
@@ -135,7 +137,7 @@ def login_post(
     user = repo.get_user_by_username(settings.db_path, username)
     if user is None or not verify_master_password(master_password, user["bcrypt_hash"]):
         return _redirect_with_flash(
-            "/login", settings.jwt_secret, [("error", "Invalid credentials")]
+            request, "/login", settings.jwt_secret, [("error", "Invalid credentials")]
         )
     redirect = RedirectResponse(url="/vault", status_code=303)
     return _issue_session_cookie(
@@ -170,12 +172,12 @@ def register_post(
         valid = RegisterRequest(username=username, master_password=master_password)
     except ValidationError:
         return _redirect_with_flash(
-            "/register", settings.jwt_secret, [("error", "Please check the form")]
+            request, "/register", settings.jwt_secret, [("error", "Please check the form")]
         )
 
     if master_password != confirm_password:
         return _redirect_with_flash(
-            "/register", settings.jwt_secret, [("error", "Passwords do not match")]
+            request, "/register", settings.jwt_secret, [("error", "Passwords do not match")]
         )
 
     kdf_salt = new_salt()
@@ -189,7 +191,7 @@ def register_post(
         )
     except sqlite3.IntegrityError:
         return _redirect_with_flash(
-            "/register", settings.jwt_secret, [("error", "Username already taken")]
+            request, "/register", settings.jwt_secret, [("error", "Username already taken")]
         )
 
     redirect = RedirectResponse(url="/vault", status_code=303)
@@ -229,6 +231,7 @@ def logout_post(
             pass
 
     redirect = _redirect_with_flash(
+        request,
         "/login",
         settings.jwt_secret,
         [("success", "You have been locked out.")],
