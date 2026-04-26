@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.api.auth import router as auth_router
 from app.api.credentials import router as credentials_router
+from app.auth.rate_limiter import LoginRateLimiter
 from app.auth.session_store import SessionStore
 from app.config import get_settings
 from app.db.connection import init_schema
@@ -23,6 +24,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     init_schema(settings.db_path)
     app.state.sessions = SessionStore(ttl_seconds=settings.session_ttl_minutes * 60)
+    app.state.rate_limiter = LoginRateLimiter()
     app.state.templates = TEMPLATES
     app.add_middleware(SecurityHeadersMiddleware)
     register_error_handlers(app)

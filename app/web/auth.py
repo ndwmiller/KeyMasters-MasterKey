@@ -134,11 +134,18 @@ def login_post(
     settings = get_settings()
     if not csrf.validate(settings.jwt_secret, mk_csrf, csrf_token):
         raise HTTPException(status_code=403, detail="csrf failed")
+    limiter = request.app.state.rate_limiter
+    if limiter.is_blocked(username):
+        return _redirect_with_flash(
+            request, "/login", settings.jwt_secret, [("error", "Too many failed attempts, try again later")]
+        )
     user = repo.get_user_by_username(settings.db_path, username)
     if user is None or not verify_master_password(master_password, user["bcrypt_hash"]):
+        limiter.record_failure(username)
         return _redirect_with_flash(
             request, "/login", settings.jwt_secret, [("error", "Invalid credentials")]
         )
+    limiter.clear(username)
     redirect = RedirectResponse(url="/vault", status_code=303)
     return _issue_session_cookie(
         request,
