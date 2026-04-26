@@ -15,16 +15,18 @@ router = APIRouter(tags=["web-vault"])
 
 
 def _redirect_with_flash(
-    url: str, secret: str, messages: list[tuple[str, str]]
+    request: Request, url: str, secret: str, messages: list[tuple[str, str]]
 ) -> RedirectResponse:
     redirect = RedirectResponse(url=url, status_code=303)
+    # secure=True prevents the cookie from being sent over plain http.
+    # we only enable it when the connection is already https so localhost still works.
     redirect.set_cookie(
         flash.COOKIE_NAME,
         flash.write(secret, messages),
         max_age=60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     return redirect
@@ -74,7 +76,7 @@ def vault_list(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -110,7 +112,7 @@ def vault_new_get(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -146,7 +148,7 @@ def vault_new_post(
         )
     except ValidationError:
         return _redirect_with_flash(
-            "/vault/new",
+            request, "/vault/new",
             settings.jwt_secret,
             [("error", "Please check the form")],
         )
@@ -166,7 +168,7 @@ def vault_new_post(
         updated_at=now,
     )
     return _redirect_with_flash(
-        f"/vault/{cid}",
+        request, f"/vault/{cid}",
         settings.jwt_secret,
         [("success", "Credential saved")],
     )
@@ -187,7 +189,7 @@ def vault_detail(
     row = repo.get_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if row is None:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
@@ -223,7 +225,7 @@ def vault_detail(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -245,7 +247,7 @@ def vault_edit_get(
     row = repo.get_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if row is None:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
@@ -281,7 +283,7 @@ def vault_edit_get(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -312,7 +314,7 @@ def vault_edit_post(
     existing = repo.get_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if existing is None:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
@@ -326,7 +328,7 @@ def vault_edit_post(
         )
     except ValidationError:
         return _redirect_with_flash(
-            f"/vault/{cid}/edit",
+            request, f"/vault/{cid}/edit",
             settings.jwt_secret,
             [("error", "Please check the form")],
         )
@@ -359,7 +361,7 @@ def vault_edit_post(
         updated_at=now,
     )
     return _redirect_with_flash(
-        f"/vault/{cid}",
+        request, f"/vault/{cid}",
         settings.jwt_secret,
         [("success", "Credential updated")],
     )
@@ -384,12 +386,12 @@ def vault_delete(
     ok = repo.delete_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if not ok:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
     return _redirect_with_flash(
-        "/vault",
+        request, "/vault",
         settings.jwt_secret,
         [("success", "Credential deleted")],
     )
