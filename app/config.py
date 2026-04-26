@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,6 +13,7 @@ class Settings(BaseSettings):
     session_ttl_minutes: int = 15
 
 
-@lru_cache
+# caching settings caused tests to share the same database path across runs,
+# so each call now creates a fresh instance instead.
 def get_settings() -> Settings:
     return Settings()
