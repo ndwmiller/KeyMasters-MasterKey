@@ -40,6 +40,10 @@ def connect(db_path: str) -> Iterator[sqlite3.Connection]:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+
+    # overwrites freed bytes with 0s before releasing the page
+    conn.execute("PRAGMA secure_delete = ON")
+
     try:
         yield conn
         conn.commit()
