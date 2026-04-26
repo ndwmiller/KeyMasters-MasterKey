@@ -8,6 +8,21 @@ class SessionStore:
         self._ttl = ttl_seconds
         self._data: dict[str, tuple[int, bytes, float]] = {}
         self._lock = threading.Lock()
+        # sessions that expire are only removed when looked up, so a background
+        # thread sweeps the store every minute to free memory from old entries.
+        self._start_cleanup()
+
+    def _start_cleanup(self) -> None:
+        def _sweep() -> None:
+            while True:
+                time.sleep(60)
+                with self._lock:
+                    now = time.monotonic()
+                    expired = [s for s, (_, _, exp) in self._data.items() if now >= exp]
+                    for s in expired:
+                        del self._data[s]
+        t = threading.Thread(target=_sweep, daemon=True)
+        t.start()
 
     def create(self, *, user_id: int, key: bytes) -> str:
         sid = secrets.token_urlsafe(32)
