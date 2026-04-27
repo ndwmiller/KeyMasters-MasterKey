@@ -1,3 +1,7 @@
+# csrf protection using a double-submit signed cookie pattern
+# the server puts a signed token in both a cookie and the html form, then checks they match on submit
+# an attacker on a different origin can trigger a form submission but cannot read the victim's cookie
+
 import hmac
 import secrets
 

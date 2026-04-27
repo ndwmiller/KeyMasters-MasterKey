@@ -1,9 +1,12 @@
+# pydantic models for user registration and login
+# these enforce input rules like minimum password length before any business logic runs
+
 from pydantic import BaseModel, Field, field_validator
 
 
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
-    master_password: str = Field(min_length=12, max_length=1024)
+    master_password: str = Field(min_length=12, max_length=1024)  # 12 chars is the minimum we enforce
 
     @field_validator("username", mode="before")
     @classmethod

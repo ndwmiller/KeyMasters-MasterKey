@@ -1,3 +1,6 @@
+# all configuration is read from environment variables or a .env file
+# pydantic-settings handles the loading and type checking automatically
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,12 +11,12 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_ttl_minutes: int = 15
-    bcrypt_cost: int = 12
+    bcrypt_cost: int = 12  # cost of 12 is the recommended minimum, lower values are only for tests
     db_path: str = "./master_key.sqlite"
     session_ttl_minutes: int = 15
 
 
 # caching settings caused tests to share the same database path across runs,
-# so each call now creates a fresh instance instead.
+# so each call now creates a fresh instance instead
 def get_settings() -> Settings:
     return Settings()

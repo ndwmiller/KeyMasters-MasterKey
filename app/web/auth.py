@@ -1,3 +1,6 @@
+# html form routes for login, register, and logout
+# mirrors the json api in app/api/auth.py but renders html pages and sets cookies instead of returning tokens
+
 import sqlite3
 from datetime import datetime, timedelta, timezone
 

@@ -1,3 +1,6 @@
+# this is the entry point for the application
+# uvicorn calls create_app() via the --factory flag so a fresh instance is built on startup
+
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -23,15 +26,21 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Master Key", version="0.1.0")
     settings = get_settings()
     init_schema(settings.db_path)
+
+    # these objects live on app.state so any route can reach them via request.app.state
     app.state.sessions = SessionStore(ttl_seconds=settings.session_ttl_minutes * 60)
     app.state.rate_limiter = LoginRateLimiter()
     app.state.templates = TEMPLATES
+
     app.add_middleware(SecurityHeadersMiddleware)
     register_error_handlers(app)
+
+    # api routers handle json requests, web routers handle html form submissions
     app.include_router(auth_router)
     app.include_router(credentials_router)
     app.include_router(web_auth_router)
     app.include_router(web_vault_router)
+
     static_dir = _ROOT / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")

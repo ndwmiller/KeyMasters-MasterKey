@@ -1,3 +1,6 @@
+# fastapi dependency functions shared across the api routes
+# they pull shared objects out of app.state so individual routes don't have to know where they live
+
 from dataclasses import dataclass
 
 from fastapi import Cookie, Depends, Header, Request

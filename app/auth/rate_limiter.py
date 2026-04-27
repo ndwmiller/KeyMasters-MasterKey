@@ -1,10 +1,12 @@
+# limits how many times someone can fail to log in before being temporarily blocked
+# this makes automated brute force attacks slow enough to be impractical
+
 import threading
 import time
 
 
 class LoginRateLimiter:
-    # sliding window limiter keyed by username.
-    # failed attempts older than the window are discarded on each check.
+    # sliding window limiter keyed by username, attempts older than the window are discarded on each check
 
     def __init__(self, max_attempts: int = 5, window_seconds: int = 900) -> None:
         self._max = max_attempts
