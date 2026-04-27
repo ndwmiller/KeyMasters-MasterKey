@@ -1,3 +1,6 @@
+# html form routes for the vault, handles listing, creating, viewing, editing, and deleting credentials
+# every route decrypts data using the session key before passing it to the template
+
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Cookie, Form, Header, HTTPException, Request

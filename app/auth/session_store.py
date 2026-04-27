@@ -1,3 +1,6 @@
+# in-memory store that maps a session id to a user id and their decryption key
+# the key is never written to disk, it only lives here for the duration of the session
+
 import secrets
 import threading
 import time

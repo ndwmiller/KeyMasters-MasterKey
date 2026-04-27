@@ -1,3 +1,6 @@
+# centralizes error handling so internal details never reach the client
+# unexpected exceptions log the full traceback server-side but only return a generic message
+
 import logging
 
 from fastapi import FastAPI, Request, Response

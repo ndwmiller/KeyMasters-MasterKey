@@ -1,3 +1,6 @@
+# pydantic models for credential operations
+# create requires all fields, update makes everything optional so partial edits work
+
 from pydantic import BaseModel, Field
 
 
