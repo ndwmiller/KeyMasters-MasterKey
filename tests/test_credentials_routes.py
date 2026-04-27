@@ -1,11 +1,11 @@
 def _auth_headers(client, username: str = "alice") -> dict[str, str]:
     client.post(
         "/auth/register",
-        json={"username": username, "master_password": "correct horse battery"},
+        json={"username": username, "master_password": "Correct!horse1"},
     )
     token = client.post(
         "/auth/login",
-        json={"username": username, "master_password": "correct horse battery"},
+        json={"username": username, "master_password": "Correct!horse1"},
     ).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 

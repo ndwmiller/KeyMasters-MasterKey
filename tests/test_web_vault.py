@@ -7,7 +7,7 @@ def _csrf(html: str) -> str:
     return m.group(1)
 
 
-def _login(client, username: str = "alice", password: str = "correct horse battery") -> None:
+def _login(client, username: str = "alice", password: str = "Correct!horse1") -> None:
     """Register + auto-login so subsequent requests carry a valid mk_session cookie."""
     get = client.get("/register")
     token = _csrf(get.text)
@@ -46,7 +46,7 @@ def test_vault_lists_credentials_for_authenticated_user(client):
     # /auth/login are independently valid.
     api_login = client.post(
         "/auth/login",
-        json={"username": "alice", "master_password": "correct horse battery"},
+        json={"username": "alice", "master_password": "Correct!horse1"},
     )
     token = api_login.json()["access_token"]
     client.post(
@@ -165,7 +165,7 @@ def _create_via_api(client, service="github", username="alice", password="hunter
     """Helper: login via JSON API to get Bearer token, create credential, return id."""
     api_login = client.post(
         "/auth/login",
-        json={"username": username, "master_password": "correct horse battery"},
+        json={"username": username, "master_password": "Correct!horse1"},
     )
     token = api_login.json()["access_token"]
     body = {"service": service, "username": username, "password": password}

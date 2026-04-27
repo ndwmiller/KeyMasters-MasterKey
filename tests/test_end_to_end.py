@@ -1,11 +1,11 @@
 def test_full_user_journey(client):
     client.post(
         "/auth/register",
-        json={"username": "alice", "master_password": "correct horse battery"},
+        json={"username": "alice", "master_password": "Correct!horse1"},
     )
     token = client.post(
         "/auth/login",
-        json={"username": "alice", "master_password": "correct horse battery"},
+        json={"username": "alice", "master_password": "Correct!horse1"},
     ).json()["access_token"]
     h = {"Authorization": f"Bearer {token}"}
 
