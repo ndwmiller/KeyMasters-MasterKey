@@ -14,8 +14,8 @@ def test_full_html_journey(client):
         "/register",
         data={
             "username": "alice",
-            "master_password": "correct horse battery",
-            "confirm_password": "correct horse battery",
+            "master_password": "Correct!horse1",
+            "confirm_password": "Correct!horse1",
             "_csrf": token,
         },
         follow_redirects=False,
@@ -101,8 +101,8 @@ def test_cross_user_isolation_in_html(client):
         "/register",
         data={
             "username": "alice",
-            "master_password": "correct horse battery",
-            "confirm_password": "correct horse battery",
+            "master_password": "Correct!horse1",
+            "confirm_password": "Correct!horse1",
             "_csrf": alice_csrf,
         },
         follow_redirects=False,
@@ -128,8 +128,8 @@ def test_cross_user_isolation_in_html(client):
         "/register",
         data={
             "username": "bob",
-            "master_password": "correct horse battery",
-            "confirm_password": "correct horse battery",
+            "master_password": "Correct!horse1",
+            "confirm_password": "Correct!horse1",
             "_csrf": bob_csrf,
         },
         follow_redirects=False,

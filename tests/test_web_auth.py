@@ -7,7 +7,7 @@ def _csrf(html: str) -> str:
     return m.group(1)
 
 
-def _register_api(client, username: str = "alice", password: str = "correct horse battery") -> None:
+def _register_api(client, username: str = "alice", password: str = "Correct!horse1") -> None:
     """Uses the JSON API to create a user (no HTML register route yet in Task 3)."""
     r = client.post(
         "/auth/register",
@@ -32,7 +32,7 @@ def test_login_post_happy_sets_cookie_and_redirects(client):
     token = _csrf(get.text)
     r = client.post(
         "/login",
-        data={"username": "alice", "master_password": "correct horse battery", "_csrf": token},
+        data={"username": "alice", "master_password": "Correct!horse1", "_csrf": token},
         follow_redirects=False,
     )
     assert r.status_code == 303
@@ -115,8 +115,8 @@ def test_register_post_happy_auto_login(client):
         "/register",
         data={
             "username": "alice",
-            "master_password": "correct horse battery",
-            "confirm_password": "correct horse battery",
+            "master_password": "Correct!horse1",
+            "confirm_password": "Correct!horse1",
             "_csrf": token,
         },
         follow_redirects=False,
@@ -135,7 +135,7 @@ def test_register_post_mismatched_passwords(client):
         "/register",
         data={
             "username": "alice",
-            "master_password": "correct horse battery",
+            "master_password": "Correct!horse1",
             "confirm_password": "different password here",
             "_csrf": token,
         },
@@ -175,8 +175,8 @@ def test_register_post_duplicate_username(client):
         "/register",
         data={
             "username": "alice",
-            "master_password": "correct horse battery",
-            "confirm_password": "correct horse battery",
+            "master_password": "Correct!horse1",
+            "confirm_password": "Correct!horse1",
             "_csrf": token,
         },
         follow_redirects=False,
@@ -191,8 +191,8 @@ def test_register_post_missing_csrf_403(client):
         "/register",
         data={
             "username": "alice",
-            "master_password": "correct horse battery",
-            "confirm_password": "correct horse battery",
+            "master_password": "Correct!horse1",
+            "confirm_password": "Correct!horse1",
         },
     )
     assert r.status_code == 403
@@ -212,7 +212,7 @@ def test_csrf_cookie_stable_across_page_navigations(client):
         "/login",
         data={
             "username": "alice",
-            "master_password": "correct horse battery",
+            "master_password": "Correct!horse1",
             "_csrf": form_token,
         },
         follow_redirects=False,
@@ -233,7 +233,7 @@ def test_logout_clears_session_and_redirects(client):
     token = _csrf(get.text)
     login = client.post(
         "/login",
-        data={"username": "alice", "master_password": "correct horse battery", "_csrf": token},
+        data={"username": "alice", "master_password": "Correct!horse1", "_csrf": token},
         follow_redirects=False,
     )
     assert login.status_code == 303

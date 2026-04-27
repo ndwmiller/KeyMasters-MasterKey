@@ -182,7 +182,7 @@ def register_post(
         valid = RegisterRequest(username=username, master_password=master_password)
     except ValidationError:
         return _redirect_with_flash(
-            request, "/register", settings.jwt_secret, [("error", "Please check the form")]
+            request, "/register", settings.jwt_secret, [("error", "Password must be at least 12 characters and contain an uppercase letter, a lowercase letter, and a symbol")]
         )
 
     if master_password != confirm_password:

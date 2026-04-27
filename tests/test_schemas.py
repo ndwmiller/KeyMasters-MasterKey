@@ -5,20 +5,38 @@ from app.schemas.credential import CredentialCreate, CredentialUpdate
 from app.schemas.user import LoginRequest, RegisterRequest
 
 
+_GOOD_PW = "Correct!horse1"  # meets all rules: upper, lower, symbol, 12+ chars
+
+
 def test_register_requires_min_password_length():
     with pytest.raises(ValidationError):
         RegisterRequest(username="alice", master_password="short")
-    ok = RegisterRequest(username="alice", master_password="a" * 12)
+    ok = RegisterRequest(username="alice", master_password=_GOOD_PW)
     assert ok.username == "alice"
+
+
+def test_register_rejects_missing_uppercase():
+    with pytest.raises(ValidationError):
+        RegisterRequest(username="alice", master_password="nouppercase!1")
+
+
+def test_register_rejects_missing_lowercase():
+    with pytest.raises(ValidationError):
+        RegisterRequest(username="alice", master_password="NOLOWERCASE!1")
+
+
+def test_register_rejects_missing_symbol():
+    with pytest.raises(ValidationError):
+        RegisterRequest(username="alice", master_password="NoSymbolHere12")
 
 
 def test_register_rejects_empty_username():
     with pytest.raises(ValidationError):
-        RegisterRequest(username="", master_password="a" * 12)
+        RegisterRequest(username="", master_password=_GOOD_PW)
 
 
 def test_register_strips_whitespace_username():
-    r = RegisterRequest(username="  alice  ", master_password="a" * 12)
+    r = RegisterRequest(username="  alice  ", master_password=_GOOD_PW)
     assert r.username == "alice"
 
 
