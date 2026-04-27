@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from fastapi import Cookie, Depends, Header, Request
 
 from app.auth.jwt import JWTError, decode_token
+from app.auth.rate_limiter import LoginRateLimiter
 from app.auth.session_store import SessionStore
 from app.config import get_settings
 from app.errors import AuthError
@@ -10,6 +11,10 @@ from app.errors import AuthError
 
 def get_session_store(request: Request) -> SessionStore:
     return request.app.state.sessions
+
+
+def get_rate_limiter(request: Request) -> LoginRateLimiter:
+    return request.app.state.rate_limiter
 
 
 @dataclass

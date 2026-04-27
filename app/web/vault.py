@@ -15,16 +15,18 @@ router = APIRouter(tags=["web-vault"])
 
 
 def _redirect_with_flash(
-    url: str, secret: str, messages: list[tuple[str, str]]
+    request: Request, url: str, secret: str, messages: list[tuple[str, str]]
 ) -> RedirectResponse:
     redirect = RedirectResponse(url=url, status_code=303)
+    # secure=True prevents the cookie from being sent over plain http.
+    # we only enable it when the connection is already https so localhost still works.
     redirect.set_cookie(
         flash.COOKIE_NAME,
         flash.write(secret, messages),
         max_age=60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     return redirect
@@ -54,7 +56,17 @@ def vault_list(
     if session is None:
         return RedirectResponse(url="/login?reason=required", status_code=303)
     settings = get_settings()
-    credentials = repo.list_credentials_for_user(settings.db_path, session.user_id)
+    # service is now encrypted in the database, so decrypt each row before passing to the template
+    rows = repo.list_credentials_for_user(settings.db_path, session.user_id)
+    credentials = [
+        {
+            "id": r["id"],
+            "service": decrypt_credential(session.key, r["service_enc"]),
+            "created_at": r["created_at"],
+            "updated_at": r["updated_at"],
+        }
+        for r in rows
+    ]
     flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
     token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
     templates = request.app.state.templates
@@ -74,7 +86,7 @@ def vault_list(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -110,7 +122,7 @@ def vault_new_get(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -146,11 +158,12 @@ def vault_new_post(
         )
     except ValidationError:
         return _redirect_with_flash(
-            "/vault/new",
+            request, "/vault/new",
             settings.jwt_secret,
             [("error", "Please check the form")],
         )
 
+    s_enc = encrypt_credential(session.key, valid.service)
     u_enc = encrypt_credential(session.key, valid.username)
     p_enc = encrypt_credential(session.key, valid.password)
     n_enc = encrypt_credential(session.key, valid.notes) if valid.notes is not None else None
@@ -158,7 +171,7 @@ def vault_new_post(
     cid = repo.create_credential(
         settings.db_path,
         user_id=session.user_id,
-        service=valid.service,
+        service_enc=s_enc,
         username_enc=u_enc,
         password_enc=p_enc,
         notes_enc=n_enc,
@@ -166,7 +179,7 @@ def vault_new_post(
         updated_at=now,
     )
     return _redirect_with_flash(
-        f"/vault/{cid}",
+        request, f"/vault/{cid}",
         settings.jwt_secret,
         [("success", "Credential saved")],
     )
@@ -187,13 +200,13 @@ def vault_detail(
     row = repo.get_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if row is None:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
     credential = {
         "id": row["id"],
-        "service": row["service"],
+        "service": decrypt_credential(session.key, row["service_enc"]),
         "username": decrypt_credential(session.key, row["username_enc"]),
         "password": decrypt_credential(session.key, row["password_enc"]),
         "notes": (
@@ -223,7 +236,7 @@ def vault_detail(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -245,13 +258,13 @@ def vault_edit_get(
     row = repo.get_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if row is None:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
     credential = {
         "id": row["id"],
-        "service": row["service"],
+        "service": decrypt_credential(session.key, row["service_enc"]),
         "username": decrypt_credential(session.key, row["username_enc"]),
         "password": decrypt_credential(session.key, row["password_enc"]),
         "notes": (
@@ -281,7 +294,7 @@ def vault_edit_get(
         max_age=15 * 60,
         httponly=True,
         samesite="strict",
-        secure=False,
+        secure=request.url.scheme == "https",
         path="/",
     )
     response.delete_cookie(flash.COOKIE_NAME, path="/")
@@ -312,7 +325,7 @@ def vault_edit_post(
     existing = repo.get_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if existing is None:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
@@ -326,11 +339,12 @@ def vault_edit_post(
         )
     except ValidationError:
         return _redirect_with_flash(
-            f"/vault/{cid}/edit",
+            request, f"/vault/{cid}/edit",
             settings.jwt_secret,
             [("error", "Please check the form")],
         )
 
+    current_service = decrypt_credential(session.key, existing["service_enc"])
     current_username = decrypt_credential(session.key, existing["username_enc"])
     current_password = decrypt_credential(session.key, existing["password_enc"])
     current_notes = (
@@ -339,11 +353,12 @@ def vault_edit_post(
         else None
     )
 
-    merged_service = valid.service if valid.service is not None else existing["service"]
+    merged_service = valid.service if valid.service is not None else current_service
     merged_username = valid.username if valid.username is not None else current_username
     merged_password = valid.password if valid.password is not None else current_password
     merged_notes = valid.notes if valid.notes is not None else current_notes
 
+    s_enc = encrypt_credential(session.key, merged_service)
     u_enc = encrypt_credential(session.key, merged_username)
     p_enc = encrypt_credential(session.key, merged_password)
     n_enc = encrypt_credential(session.key, merged_notes) if merged_notes is not None else None
@@ -352,14 +367,14 @@ def vault_edit_post(
         settings.db_path,
         cid=cid,
         user_id=session.user_id,
-        service=merged_service,
+        service_enc=s_enc,
         username_enc=u_enc,
         password_enc=p_enc,
         notes_enc=n_enc,
         updated_at=now,
     )
     return _redirect_with_flash(
-        f"/vault/{cid}",
+        request, f"/vault/{cid}",
         settings.jwt_secret,
         [("success", "Credential updated")],
     )
@@ -384,12 +399,12 @@ def vault_delete(
     ok = repo.delete_credential(settings.db_path, cid=cid, user_id=session.user_id)
     if not ok:
         return _redirect_with_flash(
-            "/vault",
+            request, "/vault",
             settings.jwt_secret,
             [("error", "Credential not found")],
         )
     return _redirect_with_flash(
-        "/vault",
+        request, "/vault",
         settings.jwt_secret,
         [("success", "Credential deleted")],
     )

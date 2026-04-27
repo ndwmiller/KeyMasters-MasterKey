@@ -37,10 +37,9 @@
             <div class="space-y-2">
               <label class="text-xs font-bold text-on-surface-variant tracking-wider uppercase" for="password-input">Password</label>
               <div class="relative">
-                <input id="password-input" name="password" type="password" required minlength="1" maxlength="1024"
-                  value="{{ credential.password | e }}"
+                <input id="password-input" name="password" type="password" maxlength="1024"
                   class="w-full bg-surface-container-lowest border-none rounded-md py-4 pl-4 pr-24 text-on-surface focus:ring-0 focus:bg-surface-bright transition-all placeholder:text-slate-600 font-mono"
-                  placeholder="••••••••••••">
+                  placeholder="leave blank to keep current password">
                 <div class="absolute inset-y-0 right-2 flex items-center gap-1">
                   <button type="button" data-reveal-target="password-input"
                     class="p-2 rounded-md text-slate-400 hover:text-emerald-300 hover:bg-slate-800/60 transition-all"
