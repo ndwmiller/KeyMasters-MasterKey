@@ -271,7 +271,7 @@ def test_edit_get_renders_prefilled_form(client):
     assert r.status_code == 200
     assert 'name="service"' in r.text
     assert 'value="github"' in r.text
-    assert "hunter2" in r.text  # pre-filled
+    assert "hunter2" not in r.text  # password no longer pre-filled in form
     assert "work" in r.text
     assert 'name="_csrf"' in r.text
 
