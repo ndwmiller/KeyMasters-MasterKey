@@ -23,10 +23,12 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# service is encrypted alongside the other fields so a stolen database reveals no metadata
 def _encrypt_fields(
-    key: bytes, username: str, password: str, notes: str | None
-) -> tuple[bytes, bytes, bytes | None]:
+    key: bytes, service: str, username: str, password: str, notes: str | None
+) -> tuple[bytes, bytes, bytes, bytes | None]:
     return (
+        encrypt_credential(key, service),
         encrypt_credential(key, username),
         encrypt_credential(key, password),
         encrypt_credential(key, notes) if notes is not None else None,
@@ -36,7 +38,7 @@ def _encrypt_fields(
 def _decrypt_row(key: bytes, row: dict) -> CredentialFull:
     return CredentialFull(
         id=row["id"],
-        service=row["service"],
+        service=decrypt_credential(key, row["service_enc"]),
         username=decrypt_credential(key, row["username_enc"]),
         password=decrypt_credential(key, row["password_enc"]),
         notes=decrypt_credential(key, row["notes_enc"]) if row["notes_enc"] is not None else None,
@@ -66,12 +68,14 @@ def create(
     body: CredentialCreate,
     session: CurrentSession = Depends(get_current_session),
 ) -> CredentialMeta:
-    u_enc, p_enc, n_enc = _encrypt_fields(session.key, body.username, body.password, body.notes)
+    s_enc, u_enc, p_enc, n_enc = _encrypt_fields(
+        session.key, body.service, body.username, body.password, body.notes
+    )
     now = _now()
     cid = repo.create_credential(
         get_settings().db_path,
         user_id=session.user_id,
-        service=body.service,
+        service_enc=s_enc,
         username_enc=u_enc,
         password_enc=p_enc,
         notes_enc=n_enc,
@@ -84,7 +88,15 @@ def create(
 @router.get("", response_model=list[CredentialMeta])
 def list_(session: CurrentSession = Depends(get_current_session)) -> list[CredentialMeta]:
     rows = repo.list_credentials_for_user(get_settings().db_path, session.user_id)
-    return [CredentialMeta(**r) for r in rows]
+    return [
+        CredentialMeta(
+            id=r["id"],
+            service=decrypt_credential(session.key, r["service_enc"]),
+            created_at=r["created_at"],
+            updated_at=r["updated_at"],
+        )
+        for r in rows
+    ]
 
 
 @router.get("/{cid}", response_model=CredentialFull)
@@ -109,15 +121,15 @@ def update(
     merged_username = body.username if body.username is not None else current.username
     merged_password = body.password if body.password is not None else current.password
     merged_notes = body.notes if body.notes is not None else current.notes
-    u_enc, p_enc, n_enc = _encrypt_fields(
-        session.key, merged_username, merged_password, merged_notes
+    s_enc, u_enc, p_enc, n_enc = _encrypt_fields(
+        session.key, merged_service, merged_username, merged_password, merged_notes
     )
     now = _now()
     repo.update_credential(
         get_settings().db_path,
         cid=cid,
         user_id=session.user_id,
-        service=merged_service,
+        service_enc=s_enc,
         username_enc=u_enc,
         password_enc=p_enc,
         notes_enc=n_enc,

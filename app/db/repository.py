@@ -41,7 +41,7 @@ def create_credential(
     db_path: str,
     *,
     user_id: int,
-    service: str,
+    service_enc: bytes,
     username_enc: bytes,
     password_enc: bytes,
     notes_enc: bytes | None,
@@ -50,9 +50,9 @@ def create_credential(
 ) -> int:
     with connect(db_path) as conn:
         cur = conn.execute(
-            "INSERT INTO credentials (user_id, service, username_enc, password_enc, notes_enc, created_at, updated_at) "
+            "INSERT INTO credentials (user_id, service_enc, username_enc, password_enc, notes_enc, created_at, updated_at) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (user_id, service, username_enc, password_enc, notes_enc, created_at, updated_at),
+            (user_id, service_enc, username_enc, password_enc, notes_enc, created_at, updated_at),
         )
         return cur.lastrowid
 
@@ -60,7 +60,7 @@ def create_credential(
 def list_credentials_for_user(db_path: str, user_id: int) -> list[dict[str, Any]]:
     with connect(db_path) as conn:
         rows = conn.execute(
-            "SELECT id, service, created_at, updated_at FROM credentials WHERE user_id = ? ORDER BY service",
+            "SELECT id, service_enc, created_at, updated_at FROM credentials WHERE user_id = ? ORDER BY id",
             (user_id,),
         ).fetchall()
         return [dict(r) for r in rows]
@@ -69,7 +69,7 @@ def list_credentials_for_user(db_path: str, user_id: int) -> list[dict[str, Any]
 def get_credential(db_path: str, *, cid: int, user_id: int) -> dict[str, Any] | None:
     with connect(db_path) as conn:
         row = conn.execute(
-            "SELECT id, user_id, service, username_enc, password_enc, notes_enc, created_at, updated_at "
+            "SELECT id, user_id, service_enc, username_enc, password_enc, notes_enc, created_at, updated_at "
             "FROM credentials WHERE id = ? AND user_id = ?",
             (cid, user_id),
         ).fetchone()
@@ -81,7 +81,7 @@ def update_credential(
     *,
     cid: int,
     user_id: int,
-    service: str,
+    service_enc: bytes,
     username_enc: bytes,
     password_enc: bytes,
     notes_enc: bytes | None,
@@ -89,9 +89,9 @@ def update_credential(
 ) -> bool:
     with connect(db_path) as conn:
         cur = conn.execute(
-            "UPDATE credentials SET service=?, username_enc=?, password_enc=?, notes_enc=?, updated_at=? "
+            "UPDATE credentials SET service_enc=?, username_enc=?, password_enc=?, notes_enc=?, updated_at=? "
             "WHERE id = ? AND user_id = ?",
-            (service, username_enc, password_enc, notes_enc, updated_at, cid, user_id),
+            (service_enc, username_enc, password_enc, notes_enc, updated_at, cid, user_id),
         )
         return cur.rowcount == 1
 

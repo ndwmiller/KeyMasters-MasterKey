@@ -47,7 +47,7 @@ def test_credential_round_trip(db_path):
     cid = repo.create_credential(
         db_path,
         user_id=uid,
-        service="github",
+        service_enc=b"senc",
         username_enc=b"uenc",
         password_enc=b"penc",
         notes_enc=None,
@@ -59,6 +59,7 @@ def test_credential_round_trip(db_path):
     assert rows[0]["id"] == cid
     full = repo.get_credential(db_path, cid=cid, user_id=uid)
     assert full is not None
+    assert full["service_enc"] == b"senc"
     assert full["password_enc"] == b"penc"
     assert repo.get_credential(db_path, cid=cid, user_id=uid + 1) is None
     repo.delete_credential(db_path, cid=cid, user_id=uid)
