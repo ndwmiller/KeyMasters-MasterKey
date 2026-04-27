@@ -1,3 +1,6 @@
+# json api endpoints for creating, reading, updating, and deleting credentials
+# all credential fields are encrypted before being stored and decrypted before being returned
+
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, status

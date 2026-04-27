@@ -1,3 +1,6 @@
+# all database access goes through here, no sql exists anywhere else in the app
+# every query that touches credentials filters by user_id to prevent one user reading another's data
+
 from typing import Any
 
 from app.db.connection import connect

@@ -1,3 +1,6 @@
+# json api endpoints for registration, login, and logout
+# these are used by api clients, the browser-facing html versions live in app/web/auth.py
+
 import sqlite3
 from datetime import datetime, timedelta, timezone
 

@@ -1,3 +1,6 @@
+# one-time flash messages that survive a redirect
+# the message is signed and stored in a short-lived cookie, then read and deleted on the next page load
+
 from itsdangerous import BadSignature, URLSafeSerializer
 
 _COOKIE = "mk_flash"

@@ -1,3 +1,6 @@
+# manages the sqlite connection and schema setup
+# connect() is a context manager that handles commits, rollbacks, and closing automatically
+
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
