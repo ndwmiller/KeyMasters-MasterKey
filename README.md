@@ -9,7 +9,7 @@ python3.13 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 python -c 'import secrets; print("JWT_SECRET=" + secrets.token_urlsafe(32))' >> .env
-uvicorn app.main:create_app --factory --reload
+uvicorn app.main:create_app --factory --reload.
 ```
 
 > The `python -c ...` line appends a freshly-generated 32-byte URL-safe secret
