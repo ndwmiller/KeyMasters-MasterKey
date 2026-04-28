@@ -12,16 +12,16 @@ Store and retrieve credentials behind a master password. Every credential field 
 ## Setup
 
 ```bash
-python -m venv venv
+python -m venv .venv
 ```
 
 Activate the virtual environment:
 
 | Platform | Command |
 |---|---|
-| macOS / Linux | `source venv/bin/activate` |
-| Windows (PowerShell / Git Bash) | `venv/Scripts/activate` |
-| Windows (cmd.exe) | `venv\Scripts\activate.bat` |
+| macOS / Linux | `source .venv/bin/activate` |
+| Windows (PowerShell / Git Bash) | `.venv/Scripts/activate` |
+| Windows (cmd.exe) | `.venv\Scripts\activate.bat` |
 
 Then install dependencies and copy the config file:
 
