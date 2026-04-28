@@ -98,8 +98,8 @@ def test_change_password_happy_path_keeps_credentials_decryptable(client):
         data={
             "_csrf": token,
             "current_password": "Correct!horse1",
-            "new_password": "brand new strong key",
-            "confirm_password": "brand new strong key",
+            "new_password": "BrandN3w!Str0ngKey",
+            "confirm_password": "BrandN3w!Str0ngKey",
         },
         follow_redirects=False,
     )
@@ -120,7 +120,7 @@ def test_change_password_happy_path_keeps_credentials_decryptable(client):
     login_csrf = _csrf(client.get("/login").text)
     good = client.post(
         "/login",
-        data={"username": "alice", "master_password": "brand new strong key", "_csrf": login_csrf},
+        data={"username": "alice", "master_password": "BrandN3w!Str0ngKey", "_csrf": login_csrf},
         follow_redirects=False,
     )
     assert good.status_code == 303
@@ -148,6 +148,34 @@ def test_change_password_too_short(client):
     )
     assert r.status_code == 303
     assert r.headers["location"] == "/vault/settings"
+
+
+def test_change_password_rejects_password_without_complexity(client):
+    """12+ chars but no uppercase/symbol → reject. Same rules as registration."""
+    _login(client)
+    token = _csrf_for_authed(client)
+    r = client.post(
+        "/vault/settings/change-password",
+        data={
+            "_csrf": token,
+            "current_password": "Correct!horse1",
+            "new_password": "alllowercaseonly",
+            "confirm_password": "alllowercaseonly",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == "/vault/settings"
+    # Old password still works.
+    client.cookies.clear()
+    login_csrf = _csrf(client.get("/login").text)
+    good = client.post(
+        "/login",
+        data={"username": "alice", "master_password": "Correct!horse1", "_csrf": login_csrf},
+        follow_redirects=False,
+    )
+    assert good.status_code == 303
+    assert good.headers["location"] == "/vault"
 
 
 def test_update_recovery_questions_changes_recovery_path(client):
@@ -319,8 +347,8 @@ def test_forgot_password_full_recovery_resets_master_password(client):
             "username": "alice",
             "answer1": "  fluffy  ",  # case + whitespace tolerant
             "answer2": "BOSTON",
-            "new_password": "fresh recovered password",
-            "confirm_password": "fresh recovered password",
+            "new_password": "FreshR3covered!Pass",
+            "confirm_password": "FreshR3covered!Pass",
         },
         follow_redirects=False,
     )
@@ -331,7 +359,7 @@ def test_forgot_password_full_recovery_resets_master_password(client):
     login_csrf = _csrf(client.get("/login").text)
     r = client.post(
         "/login",
-        data={"username": "alice", "master_password": "fresh recovered password", "_csrf": login_csrf},
+        data={"username": "alice", "master_password": "FreshR3covered!Pass", "_csrf": login_csrf},
         follow_redirects=False,
     )
     assert r.status_code == 303
@@ -354,14 +382,54 @@ def test_forgot_password_wrong_answers_rejected(client):
             "username": "alice",
             "answer1": "wrong",
             "answer2": "answers",
-            "new_password": "this should not work",
-            "confirm_password": "this should not work",
+            # Strong new password so we exercise the answer check, not the
+            # complexity check.
+            "new_password": "ThisShouldN0t!Work",
+            "confirm_password": "ThisShouldN0t!Work",
         },
         follow_redirects=False,
     )
     assert r.status_code == 303
     assert r.headers["location"] == "/forgot-password"
     # Old password still works.
+    login_csrf = _csrf(client.get("/login").text)
+    good = client.post(
+        "/login",
+        data={"username": "alice", "master_password": "Correct!horse1", "_csrf": login_csrf},
+        follow_redirects=False,
+    )
+    assert good.status_code == 303
+    assert good.headers["location"] == "/vault"
+
+
+def test_forgot_password_rejects_password_without_complexity(client):
+    """Recovery refuses to set a master password that fails complexity rules."""
+    _login(client)
+    client.cookies.clear()
+    forgot_csrf = _csrf(client.get("/forgot-password").text)
+    look = client.post(
+        "/forgot-password",
+        data={"username": "alice", "_csrf": forgot_csrf},
+        follow_redirects=False,
+    )
+    page_csrf = _csrf(look.text)
+    r = client.post(
+        "/forgot-password/recover",
+        data={
+            "_csrf": page_csrf,
+            "username": "alice",
+            "answer1": "Fluffy",
+            "answer2": "Boston",
+            # 12+ chars but no uppercase / symbol → must be rejected even with
+            # correct answers.
+            "new_password": "alllowercaseonly",
+            "confirm_password": "alllowercaseonly",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == "/forgot-password"
+    # Old password still works — recovery did not silently overwrite it.
     login_csrf = _csrf(client.get("/login").text)
     good = client.post(
         "/login",

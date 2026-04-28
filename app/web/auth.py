@@ -11,7 +11,11 @@ from pydantic import ValidationError
 
 from app.auth.jwt import JWTError, decode_token, issue_token
 from app.auth.kdf import derive_key, derive_recovery_key, new_salt
-from app.auth.password import hash_master_password, verify_master_password
+from app.auth.password import (
+    hash_master_password,
+    validate_master_password,
+    verify_master_password,
+)
 from app.auth.recovery_questions import RECOVERY_QUESTIONS, is_valid_question
 from app.config import get_settings
 from app.crypto.encryption import new_mek, unwrap_key, wrap_key
@@ -357,12 +361,20 @@ def forgot_recover(
     if not csrf.validate(settings.jwt_secret, mk_csrf, csrf_token):
         raise HTTPException(status_code=403, detail="csrf failed")
 
-    if len(new_password) < 12 or len(new_password) > 1024 or new_password != confirm_password:
+    if new_password != confirm_password:
         return _redirect_with_flash(
             request,
             "/forgot-password",
             settings.jwt_secret,
-            [("error", "New password must be at least 12 characters and match confirmation.")],
+            [("error", "New password and confirmation do not match.")],
+        )
+    err = validate_master_password(new_password)
+    if err is not None:
+        return _redirect_with_flash(
+            request,
+            "/forgot-password",
+            settings.jwt_secret,
+            [("error", f"New password {err}.")],
         )
 
     user = repo.get_user_by_username(settings.db_path, username.strip())

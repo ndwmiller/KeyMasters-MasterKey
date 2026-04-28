@@ -3,13 +3,14 @@
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.auth.password import MAX_LEN, MIN_LEN, validate_master_password
 from app.auth.recovery_questions import is_valid_question
 
 
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
-    # min 12 chars, must contain upper, lower, and a symbol
-    master_password: str = Field(min_length=12, max_length=1024)
+    # rules enforced by validate_master_password: 12-1024 chars, upper, lower, symbol
+    master_password: str = Field(min_length=MIN_LEN, max_length=MAX_LEN)
     recovery_q1: str = Field(min_length=1, max_length=200)
     recovery_a1: str = Field(min_length=1, max_length=200)
     recovery_q2: str = Field(min_length=1, max_length=200)
@@ -23,12 +24,9 @@ class RegisterRequest(BaseModel):
     @field_validator("master_password")
     @classmethod
     def _password_complexity(cls, v: str) -> str:
-        if not any(c.isupper() for c in v):
-            raise ValueError("must contain at least one uppercase letter")
-        if not any(c.islower() for c in v):
-            raise ValueError("must contain at least one lowercase letter")
-        if not any(c in "!@#$%^&*()-_=+[]{};:,.<>/?" for c in v):
-            raise ValueError("must contain at least one symbol")
+        err = validate_master_password(v)
+        if err is not None:
+            raise ValueError(err)
         return v
 
     @field_validator("recovery_q1", "recovery_q2")

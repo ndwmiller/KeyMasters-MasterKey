@@ -11,7 +11,11 @@ from fastapi import APIRouter, Cookie, Form, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from app.auth.kdf import derive_key, derive_recovery_key, new_salt
-from app.auth.password import hash_master_password, verify_master_password
+from app.auth.password import (
+    hash_master_password,
+    validate_master_password,
+    verify_master_password,
+)
 from app.auth.recovery_questions import RECOVERY_QUESTIONS, is_valid_question
 from app.config import get_settings
 from app.crypto.encryption import unwrap_key, wrap_key
@@ -115,10 +119,11 @@ def change_password(
             request, "/vault/settings", settings.jwt_secret,
             [("error", "Current password is incorrect.")],
         )
-    if len(new_password) < 12 or len(new_password) > 1024:
+    err = validate_master_password(new_password)
+    if err is not None:
         return _redirect_with_flash(
             request, "/vault/settings", settings.jwt_secret,
-            [("error", "New password must be at least 12 characters.")],
+            [("error", f"New password {err}.")],
         )
     if new_password != confirm_password:
         return _redirect_with_flash(
