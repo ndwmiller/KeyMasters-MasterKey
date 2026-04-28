@@ -2,21 +2,55 @@
 
 Self-hosted password manager. Course 327 final project — team KeyMasters (Bibas, Abhishek, Nathaniel, Javokhir).
 
-## Quickstart
+Store and retrieve credentials behind a master password. All data is encrypted with AES-256-GCM before it touches the database — a stolen database file is useless without the master password.
+
+## Requirements
+
+- Python 3.10 or newer
+- pip
+
+## Setup
 
 ```bash
-python3.13 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python -c 'import secrets; print("JWT_SECRET=" + secrets.token_urlsafe(32))' >> .env
-uvicorn app.main:create_app --factory --reload.
+python -m venv venv
 ```
 
-> The `python -c ...` line appends a freshly-generated 32-byte URL-safe secret
-> to `.env` (overriding the placeholder from `.env.example`). Pydantic reads
-> the last-defined value, so this is safe.
+Activate the virtual environment:
 
-API docs: `http://127.0.0.1:8000/docs`
+| Platform | Command |
+|---|---|
+| macOS / Linux | `source venv/bin/activate` |
+| Windows (PowerShell / Git Bash) | `venv/Scripts/activate` |
+| Windows (cmd.exe) | `venv\Scripts\activate.bat` |
+
+Then install dependencies and copy the config file:
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Then generate a secret key and write it into `.env`:
+
+**macOS / Linux**
+```bash
+python3 -c "import secrets; print('JWT_SECRET=' + secrets.token_urlsafe(32))" >> .env
+```
+
+**Windows (PowerShell)**
+```powershell
+python -c "import secrets; print('JWT_SECRET=' + secrets.token_urlsafe(32))" | Add-Content .env
+```
+
+## Running
+
+```bash
+uvicorn app.main:create_app --factory --reload
+```
+
+Then open **http://127.0.0.1:8000** in your browser to use the app.
+
+API docs (Swagger UI): http://127.0.0.1:8000/docs
 
 ## Testing
 
