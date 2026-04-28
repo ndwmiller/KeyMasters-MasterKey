@@ -13,9 +13,11 @@ curl -sc "$JAR" -b "$JAR" "$B/login" >/dev/null
 TOK=$(curl -sc "$JAR" -b "$JAR" "$B/login" \
   | grep -oE 'value="[^"]+"' | head -1 | cut -d'"' -f2)
 
-# 3) Submit the login with the token; the server will set mk_session in the jar
+# 3) Submit the login with the token; the server will set mk_session in the jar.
+# The literal part of -d is single-quoted to keep the password's `!` intact in
+# zsh (which would otherwise treat it as history expansion).
 curl -sc "$JAR" -b "$JAR" -X POST "$B/login" \
-  -d "username=alice&master_password=Correct!horse1&_csrf=$TOK" \
+  -d 'username=alice&master_password=Correct!horse1&_csrf='"$TOK" \
   -o /dev/null -w "logged in → %{http_code}\n"
 
 echo "✓ jar ready: $JAR"

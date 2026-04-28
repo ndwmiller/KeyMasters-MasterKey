@@ -1007,15 +1007,17 @@
     </div>
     <div class="demo">
       <div class="terminal">
-<div class="body"><span class="dim"># prereq: uvicorn on :8000, alice already registered</span>
+<div class="body"><span class="dim"># prereq: in another terminal, from the repo root:</span>
+<span class="dim">#   .venv/bin/uvicorn --factory app.main:create_app --port 8000</span>
+<span class="dim"># sanity check — should print "server: 200"</span>
+<span class="p">curl -s -o /dev/null -w "server: %{http_code}\n" http://localhost:8000/health</span>
 <span class="dim"># 1. loop seven wrong-password attempts against the JSON login</span>
-<span class="p">for i in 1 2 3 4 5 6 7; do</span>
-<span class="dim">#   2. send each attempt and print only the HTTP status code</span>
-<span class="p">  curl -s -o /dev/null -w "attempt $i → %{http_code}\n" \
+<span class="p">for i in 1 2 3 4 5 6 7; do
+  curl -s -o /dev/null -w "attempt $i → %{http_code}\n" \
        -X POST http://localhost:8000/auth/login \
        -H 'Content-Type: application/json' \
-       -d "{\"username\":\"alice\",\"master_password\":\"guess$i\"}"</span>
-<span class="p">done</span></div>
+       -d "{\"username\":\"alice\",\"master_password\":\"guess$i\"}"
+done</span></div>
       </div>
       <div class="pane">
         <span class="label">What you'll see</span>
@@ -1050,7 +1052,9 @@
     </div>
     <div class="demo">
       <div class="terminal">
-<div class="body"><span class="dim"># prereq: master_key.sqlite exists with at least one credential</span>
+<div class="body"><span class="dim"># prereq: uvicorn has run from this dir, demo/seed.sh has been run once</span>
+<span class="dim"># sanity check — must show a non-zero number of credential rows</span>
+<span class="p">sqlite3 master_key.sqlite "SELECT COUNT(*) FROM credentials;"</span>
 <span class="dim"># 1. dump a credential row in hex — every field is a ciphertext blob</span>
 <span class="p">sqlite3 master_key.sqlite \
   "SELECT id, hex(service_enc), hex(password_enc) FROM credentials LIMIT 1;"</span>
@@ -1096,13 +1100,13 @@
     </div>
     <div class="demo">
       <div class="terminal">
-<div class="body"><span class="dim"># prereq: alice exists. paste this whole block in one shot.</span>
+<div class="body"><span class="dim"># prereq: uvicorn on :8000, alice already registered (demo/seed.sh)</span>
 <span class="p">JAR=/tmp/mk.jar; B=http://localhost:8000</span>
-<span class="dim"># 1. log in via the HTML form — captures session + csrf cookies in $JAR</span>
+<span class="dim"># 1. log in via the HTML form — populate $JAR with session + csrf cookies</span>
 <span class="p">TOK=$(curl -sc $JAR -b $JAR $B/login \
        | grep -oE 'value="[^"]+"' | head -1 | cut -d'"' -f2)
 curl -sc $JAR -b $JAR -X POST $B/login \
-  -d "username=alice&amp;master_password=Correct!horse1&amp;_csrf=$TOK" \
+  -d 'username=alice&amp;master_password=Correct!horse1&amp;_csrf='"$TOK" \
   -o /dev/null -w "login → %{http_code}\n"</span>
 <span class="dim"># 2. attack: stolen session, but no _csrf in the body</span>
 <span class="p">curl -sb $JAR -X POST $B/vault/new \
