@@ -16,9 +16,26 @@ curl -s "$B/auth/register" -H 'Content-Type: application/json' -d '{
 }' -o /dev/null -w "  status: %{http_code}\n"
 
 echo "→ log in via the JSON API to mint a Bearer token"
-TOK=$(curl -s "$B/auth/login" -H 'Content-Type: application/json' \
-  -d '{"username":"alice","master_password":"Correct!horse1"}' \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+RESP=$(curl -s -w "\n%{http_code}" "$B/auth/login" \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"alice","master_password":"Correct!horse1"}')
+CODE=$(printf '%s\n' "$RESP" | tail -n 1)
+BODY=$(printf '%s\n' "$RESP" | sed '$d')
+
+if [ "$CODE" = "429" ]; then
+  cat <<'MSG'
+  ✗ alice is rate-limited (429). The brute-force demo locked her for 15 min.
+    The limiter lives in process memory — restart uvicorn (Ctrl-C in the
+    server terminal, then rerun the same command) and re-run ./demo/seed.sh.
+MSG
+  exit 1
+fi
+if [ "$CODE" != "200" ]; then
+  echo "  ✗ login failed: HTTP $CODE"
+  echo "    body: $BODY"
+  exit 1
+fi
+TOK=$(printf '%s\n' "$BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
 
 echo "→ create a credential so slide 8's strings|grep has a real target"
 curl -s "$B/credentials" \
