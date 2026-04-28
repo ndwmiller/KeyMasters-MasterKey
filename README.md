@@ -1,8 +1,8 @@
 # KeyMasters-MasterKey
 
-Self-hosted password manager. Course 327 final project — team KeyMasters (Bibas, Abhishek, Nathaniel, Javokhir).
+Self-hosted password manager. USM Course CSC 327 Final Project — Team KeyMasters (Bibas, Abhishek, Nathaniel, Javokhir).
 
-Store and retrieve credentials behind a master password. All data is encrypted with AES-256-GCM before it touches the database — a stolen database file is useless without the master password.
+Store and retrieve credentials behind a master password. All credential fields are encrypted with AES-256-GCM before reaching the database — a stolen database file exposes no plaintext passwords, usernames, or service names without the master password.
 
 ## Requirements
 
@@ -27,7 +27,16 @@ Then install dependencies and copy the config file:
 
 ```bash
 pip install -r requirements.txt
+```
+
+**macOS / Linux**
+```bash
 cp .env.example .env
+```
+
+**Windows**
+```powershell
+copy .env.example .env
 ```
 
 Then generate a secret key and write it into `.env`:
@@ -59,6 +68,15 @@ pytest                                                      # all tests
 pytest tests/test_auth_routes.py::test_login_happy_path -v  # single test
 pytest --cov=app --cov-report=term-missing                  # coverage
 ```
+
+## Demo
+
+1. Run the app and open http://127.0.0.1:8000
+2. Click **Create a Vault** and create an account with a strong master password
+3. Add a credential — the service name, username, and password are encrypted before storage
+4. To verify: open `master_key.sqlite` with any SQLite viewer — all credential fields (service, username, password, notes) are stored as encrypted blobs, not plaintext
+
+We do not provide pre-built test accounts or a seed database. This is intentional. A pre-seeded database would contain bcrypt hashes tied to a known password, which could be cracked offline — contradicting the security model we are demonstrating. Storing credentials in the repo, even hashed, treats the project as if it were a normal app rather than a security-critical one. Creating your own account takes under a minute and produces a database that is genuinely encrypted with a key only you hold, which is the correct demonstration of the system.
 
 ## Stack
 
