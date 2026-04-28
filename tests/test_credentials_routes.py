@@ -1,8 +1,8 @@
+from tests.conftest import register_payload
+
+
 def _auth_headers(client, username: str = "alice") -> dict[str, str]:
-    client.post(
-        "/auth/register",
-        json={"username": username, "master_password": "Correct!horse1"},
-    )
+    client.post("/auth/register", json=register_payload(username))
     token = client.post(
         "/auth/login",
         json={"username": username, "master_password": "Correct!horse1"},

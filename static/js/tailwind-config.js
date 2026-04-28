@@ -1,66 +1,66 @@
+// Tailwind v3 (CDN) bridge for the shadcn OKLCH variables defined in app.css.
+// Each token is wired as `oklch(var(--foo) / <alpha-value>)` so that
+// `bg-primary/50` etc. correctly substitute the alpha channel.
 tailwind.config = {
   darkMode: "class",
   theme: {
     extend: {
       colors: {
-        "secondary": "#bcc7de",
-        "on-error-container": "#ffdad6",
-        "surface-variant": "#2d3449",
-        "primary-fixed-dim": "#4edea3",
-        "primary-fixed": "#6ffbbe",
-        "error": "#ffb4ab",
-        "surface-tint": "#4edea3",
-        "primary": "#4edea3",
-        "on-error": "#690005",
-        "surface-container-high": "#222a3d",
-        "outline": "#8e9196",
-        "on-secondary": "#263143",
-        "secondary-container": "#3e495d",
-        "on-tertiary-fixed": "#001e2c",
-        "surface-container-low": "#131b2e",
-        "surface-container": "#171f33",
-        "on-background": "#dae2fd",
-        "tertiary-container": "#001d2a",
-        "tertiary-fixed": "#c4e7ff",
-        "on-surface-variant": "#c4c6cc",
-        "surface-container-highest": "#2d3449",
-        "on-primary": "#003824",
-        "tertiary": "#7bd0ff",
-        "on-primary-fixed-variant": "#005236",
-        "surface-dim": "#0b1326",
-        "on-tertiary-fixed-variant": "#004c69",
-        "error-container": "#93000a",
-        "surface-container-lowest": "#060e20",
-        "secondary-fixed": "#d8e3fb",
-        "on-secondary-fixed-variant": "#3c475a",
-        "on-primary-container": "#009567",
-        "on-tertiary-container": "#008cbd",
-        "outline-variant": "#44474c",
-        "inverse-primary": "#006c49",
-        "primary-container": "#001f12",
-        "on-primary-fixed": "#002113",
-        "surface-bright": "#31394d",
-        "on-secondary-fixed": "#111c2d",
-        "secondary-fixed-dim": "#bcc7de",
-        "inverse-on-surface": "#283044",
-        "background": "#0b1326",
-        "on-secondary-container": "#aeb9d0",
-        "on-tertiary": "#00354a",
-        "surface": "#0b1326",
-        "on-surface": "#dae2fd",
-        "tertiary-fixed-dim": "#7bd0ff",
-        "inverse-surface": "#dae2fd"
+        background: "oklch(var(--background) / <alpha-value>)",
+        foreground: "oklch(var(--foreground) / <alpha-value>)",
+        card: {
+          DEFAULT: "oklch(var(--card) / <alpha-value>)",
+          foreground: "oklch(var(--card-foreground) / <alpha-value>)"
+        },
+        popover: {
+          DEFAULT: "oklch(var(--popover) / <alpha-value>)",
+          foreground: "oklch(var(--popover-foreground) / <alpha-value>)"
+        },
+        primary: {
+          DEFAULT: "oklch(var(--primary) / <alpha-value>)",
+          foreground: "oklch(var(--primary-foreground) / <alpha-value>)"
+        },
+        secondary: {
+          DEFAULT: "oklch(var(--secondary) / <alpha-value>)",
+          foreground: "oklch(var(--secondary-foreground) / <alpha-value>)"
+        },
+        muted: {
+          DEFAULT: "oklch(var(--muted) / <alpha-value>)",
+          foreground: "oklch(var(--muted-foreground) / <alpha-value>)"
+        },
+        accent: {
+          DEFAULT: "oklch(var(--accent) / <alpha-value>)",
+          foreground: "oklch(var(--accent-foreground) / <alpha-value>)"
+        },
+        destructive: {
+          DEFAULT: "oklch(var(--destructive) / <alpha-value>)",
+          foreground: "oklch(var(--destructive-foreground) / <alpha-value>)"
+        },
+        border: "oklch(var(--border) / <alpha-value>)",
+        input: "oklch(var(--input) / <alpha-value>)",
+        ring: "oklch(var(--ring) / <alpha-value>)",
+        sidebar: {
+          DEFAULT: "oklch(var(--sidebar) / <alpha-value>)",
+          foreground: "oklch(var(--sidebar-foreground) / <alpha-value>)",
+          primary: "oklch(var(--sidebar-primary) / <alpha-value>)",
+          "primary-foreground": "oklch(var(--sidebar-primary-foreground) / <alpha-value>)",
+          accent: "oklch(var(--sidebar-accent) / <alpha-value>)",
+          "accent-foreground": "oklch(var(--sidebar-accent-foreground) / <alpha-value>)",
+          border: "oklch(var(--sidebar-border) / <alpha-value>)",
+          ring: "oklch(var(--sidebar-ring) / <alpha-value>)"
+        }
       },
       borderRadius: {
-        "DEFAULT": "0.125rem",
-        "lg": "0.25rem",
-        "xl": "0.5rem",
-        "full": "0.75rem"
+        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 2px)",
+        lg: "var(--radius)",
+        xl: "calc(var(--radius) + 4px)"
       },
       fontFamily: {
-        "headline": ["Manrope"],
-        "body": ["Inter"],
-        "label": ["Inter"]
+        headline: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
+        body: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        label: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "monospace"]
       }
     }
   }

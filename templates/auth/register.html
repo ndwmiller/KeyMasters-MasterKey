@@ -5,73 +5,109 @@
   <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-8">
     <div class="md:col-span-12 mb-4">
       <span class="text-xs font-bold text-primary tracking-[0.2em] uppercase mb-2 block">Create Master Account</span>
-      <h1 class="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight mb-2">Forge Your Key</h1>
-      <p class="text-on-surface-variant text-lg max-w-2xl">This is the only key to your vault. We cannot reset it. Make it unforgettable and unforgeable.</p>
+      <h1 class="text-4xl md:text-5xl font-extrabold font-headline text-foreground tracking-tight mb-2">Forge Your Key</h1>
+      <p class="text-muted-foreground text-lg max-w-2xl">This is the only key to your vault. We cannot reset it. Make it unforgettable and unforgeable.</p>
     </div>
 
     <div class="md:col-span-7 space-y-8">
-      <div class="bg-surface-container-high rounded-xl p-8 border border-outline-variant/5 shadow-2xl relative overflow-hidden">
+      <div class="bg-card rounded-xl p-8 border border-border shadow-2xl relative overflow-hidden">
         <div class="absolute top-0 left-0 w-1 h-full bg-primary/20"></div>
         <form action="/register" method="post" enctype="application/x-www-form-urlencoded" class="space-y-6" autocomplete="on">
           <input type="hidden" name="_csrf" value="{{ csrf_token }}">
 
           <div class="space-y-2">
-            <label class="text-xs font-bold text-on-surface-variant tracking-wider uppercase" for="username">Username</label>
+            <label class="text-xs font-bold text-muted-foreground tracking-wider uppercase" for="username">Username</label>
             <input id="username" name="username" type="text" required maxlength="64" autocomplete="username"
-              class="w-full bg-surface-container-lowest border-none rounded-md py-4 px-4 text-on-surface focus:ring-0 focus:bg-surface-bright transition-all placeholder:text-slate-600"
+              class="w-full bg-input border-none rounded-md py-4 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all placeholder:text-muted-foreground"
               placeholder="yourname">
           </div>
 
           <div class="space-y-2">
-            <label class="text-xs font-bold text-on-surface-variant tracking-wider uppercase" for="master_password">Master Password (min 12 chars, upper, lower, symbol)</label>
+            <label class="text-xs font-bold text-muted-foreground tracking-wider uppercase" for="master_password">Master Password (min 12 chars · upper · lower · symbol)</label>
             <input id="master_password" name="master_password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"
-              class="w-full bg-surface-container-lowest border-none rounded-md py-4 px-4 text-on-surface focus:ring-0 focus:bg-surface-bright transition-all placeholder:text-slate-600 font-mono"
+              class="w-full bg-input border-none rounded-md py-4 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all placeholder:text-muted-foreground font-mono"
               placeholder="••••••••••••">
           </div>
 
           <div class="space-y-2">
-            <label class="text-xs font-bold text-on-surface-variant tracking-wider uppercase" for="confirm_password">Confirm Master Password</label>
+            <label class="text-xs font-bold text-muted-foreground tracking-wider uppercase" for="confirm_password">Confirm Master Password</label>
             <input id="confirm_password" name="confirm_password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"
-              class="w-full bg-surface-container-lowest border-none rounded-md py-4 px-4 text-on-surface focus:ring-0 focus:bg-surface-bright transition-all placeholder:text-slate-600 font-mono"
+              class="w-full bg-input border-none rounded-md py-4 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all placeholder:text-muted-foreground font-mono"
               placeholder="••••••••••••">
-            <p id="match-hint" class="text-xs text-error" aria-live="polite"></p>
+            <p id="match-hint" class="text-xs text-destructive" aria-live="polite"></p>
           </div>
 
-          <button type="submit" class="w-full primary-gradient py-4 rounded-md text-on-primary font-bold font-headline text-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+          <div class="pt-6 mt-6 border-t border-border space-y-5">
+            <div>
+              <span class="text-xs font-bold text-primary tracking-[0.2em] uppercase mb-1 block">Recovery</span>
+              <p class="text-xs text-muted-foreground">Pick two questions. Their answers wrap a separate copy of your encryption key, so you can recover access if you ever forget the master password.</p>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs font-bold text-muted-foreground tracking-wider uppercase" for="recovery_q1">Question 1</label>
+              <select id="recovery_q1" name="recovery_q1" required
+                class="w-full bg-input border-none rounded-md py-4 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all">
+                <option value="" disabled selected>Choose a question…</option>
+                {% for q in recovery_questions %}
+                <option value="{{ q }}">{{ q }}</option>
+                {% endfor %}
+              </select>
+              <input id="recovery_a1" name="recovery_a1" type="text" required maxlength="200" autocomplete="off"
+                class="w-full bg-input border-none rounded-md py-4 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all placeholder:text-muted-foreground"
+                placeholder="Your answer">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs font-bold text-muted-foreground tracking-wider uppercase" for="recovery_q2">Question 2</label>
+              <select id="recovery_q2" name="recovery_q2" required
+                class="w-full bg-input border-none rounded-md py-4 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all">
+                <option value="" disabled selected>Choose a different question…</option>
+                {% for q in recovery_questions %}
+                <option value="{{ q }}">{{ q }}</option>
+                {% endfor %}
+              </select>
+              <input id="recovery_a2" name="recovery_a2" type="text" required maxlength="200" autocomplete="off"
+                class="w-full bg-input border-none rounded-md py-4 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all placeholder:text-muted-foreground"
+                placeholder="Your answer">
+            </div>
+            <p class="text-[11px] text-muted-foreground">Answers are case-insensitive and whitespace is ignored. Pick something you'll remember verbatim — these answers are the only path back into the vault.</p>
+          </div>
+
+          <button type="submit" class="w-full primary-gradient py-4 rounded-md text-primary-foreground font-bold font-headline text-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
             Forge Vault
             <span class="material-symbols-outlined">arrow_forward</span>
           </button>
         </form>
       </div>
 
-      <div class="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10">
+      <div class="bg-muted rounded-xl p-6 border border-border">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h3 class="font-headline font-bold text-on-surface">Entropy Analysis</h3>
-            <p class="text-xs text-on-surface-variant">Real-time cryptographic strength</p>
+            <h3 class="font-headline font-bold text-foreground">Entropy Analysis</h3>
+            <p class="text-xs text-muted-foreground">Real-time cryptographic strength</p>
           </div>
-          <span id="strength-label" class="text-xs font-bold uppercase tracking-widest text-slate-500">—</span>
+          <span id="strength-label" class="text-xs font-bold uppercase tracking-widest text-muted-foreground">—</span>
         </div>
-        <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
-          <div id="strength-bar" class="h-full w-0 bg-slate-600 rounded-full transition-all"></div>
+        <div class="h-1.5 w-full bg-accent rounded-full overflow-hidden">
+          <div id="strength-bar" class="h-full w-0 bg-muted rounded-full transition-all"></div>
         </div>
       </div>
     </div>
 
     <div class="md:col-span-5 space-y-6">
-      <div class="bg-surface-container-low border border-primary/10 rounded-xl p-8 relative">
+      <div class="bg-muted border border-primary/10 rounded-xl p-8 relative">
         <div class="absolute -top-4 -right-4 w-12 h-12 glass-panel rounded-full flex items-center justify-center border border-primary/20 shadow-xl">
           <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">verified_user</span>
         </div>
-        <h3 class="font-headline font-extrabold text-xl mb-4 text-on-surface">Zero-Knowledge Security</h3>
-        <p class="text-on-surface-variant text-sm leading-relaxed">
-          Your master password never leaves your device in plaintext. It is the <span class="italic text-tertiary">only</span> key that can unlock your vault. If you lose it, your data is mathematically inaccessible — including to us.
+        <h3 class="font-headline font-extrabold text-xl mb-4 text-foreground">Zero-Knowledge Security</h3>
+        <p class="text-muted-foreground text-sm leading-relaxed">
+          Your master password never leaves your device in plaintext. The encryption key is wrapped twice — once with your password and once with the answers to your recovery questions — so either of those two secrets can unlock the vault. Lose <span class="italic text-primary">both</span> and the data is mathematically inaccessible.
         </p>
       </div>
 
-      <p class="text-center text-sm text-secondary/70">
+      <p class="text-center text-sm text-muted-foreground">
         Already have a vault?
-        <a href="/login" class="text-primary hover:text-primary-fixed transition-colors font-medium">Unlock it</a>
+        <a href="/login" class="text-primary hover:text-primary/80 transition-colors font-medium">Unlock it</a>
       </p>
     </div>
   </div>

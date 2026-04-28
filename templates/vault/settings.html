@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Settings · Master Key{% endblock %}
+{% block layout %}
+{% include "partials/_sidebar.html" %}
+{% include "partials/_topbar.html" %}
+<main class="md:ml-64 pt-20 pb-24 px-6 min-h-screen">
+  <div class="max-w-3xl mx-auto">
+    <div class="mb-10">
+      <span class="font-inter font-medium tracking-wide uppercase text-[10px] text-primary mb-2 block">Vault Configuration</span>
+      <h2 class="font-headline font-bold text-3xl text-foreground">Settings</h2>
+      <p class="text-sm text-muted-foreground mt-1">Manage your master password, recovery questions, and account.</p>
+    </div>
+
+    <div class="bg-card rounded-xl p-6 border border-border mb-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">person</span>
+        <h3 class="font-headline font-bold text-sm uppercase tracking-widest text-foreground">Account</h3>
+      </div>
+      <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div>
+          <dt class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Username</dt>
+          <dd class="font-mono text-foreground break-words">{{ account.username }}</dd>
+        </div>
+        <div>
+          <dt class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Member since</dt>
+          <dd class="font-mono text-foreground">{{ account.created_at[:10] }}</dd>
+        </div>
+        <div>
+          <dt class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Credentials stored</dt>
+          <dd class="font-mono text-foreground">{{ account.credential_count }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <details class="bg-card rounded-xl border border-border mb-6 group" open>
+      <summary class="cursor-pointer list-none p-6 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">key</span>
+          <h3 class="font-headline font-bold text-lg text-foreground">Change Master Password</h3>
+        </div>
+        <span class="material-symbols-outlined text-muted-foreground transition-transform group-open:rotate-180">expand_more</span>
+      </summary>
+      <form action="/vault/settings/change-password" method="post" class="px-6 pb-6 space-y-4 border-t border-border pt-5" autocomplete="off">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <p class="text-xs text-muted-foreground">Your encrypted credentials are not re-encrypted. The master password change re-wraps the encryption key with a fresh KEK.</p>
+        <div class="space-y-2">
+          <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="cp_current">Current master password</label>
+          <input id="cp_current" name="current_password" type="password" required autocomplete="current-password"
+            class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all font-mono">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="cp_new">New master password (min 12)</label>
+          <input id="cp_new" name="new_password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"
+            class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all font-mono">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="cp_confirm">Confirm new master password</label>
+          <input id="cp_confirm" name="confirm_password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"
+            class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all font-mono">
+        </div>
+        <button type="submit"
+          class="primary-gradient text-primary-foreground font-headline font-bold px-6 py-3 rounded-md transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
+          <span class="material-symbols-outlined">check</span>
+          Update Password
+        </button>
+      </form>
+    </details>
+
+    <details class="bg-card rounded-xl border border-border mb-6 group">
+      <summary class="cursor-pointer list-none p-6 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">help</span>
+          <h3 class="font-headline font-bold text-lg text-foreground">Recovery Questions</h3>
+        </div>
+        <span class="material-symbols-outlined text-muted-foreground transition-transform group-open:rotate-180">expand_more</span>
+      </summary>
+      <div class="px-6 pb-6 border-t border-border pt-5 space-y-4">
+        <div class="bg-input rounded-lg p-4 border border-border text-xs space-y-2">
+          <p class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Currently set</p>
+          <p class="text-foreground">1. {{ recovery.q1 }}</p>
+          <p class="text-foreground">2. {{ recovery.q2 }}</p>
+        </div>
+        <form action="/vault/settings/update-questions" method="post" class="space-y-4" autocomplete="off">
+          <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+          <p class="text-xs text-muted-foreground">Picking new questions or answers re-wraps your recovery key. The encryption key itself never changes.</p>
+          <div class="space-y-2">
+            <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="rq_current">Current master password</label>
+            <input id="rq_current" name="current_password" type="password" required autocomplete="current-password"
+              class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all font-mono">
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="rq_q1">Question 1</label>
+              <select id="rq_q1" name="recovery_q1" required
+                class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all">
+                <option value="" disabled {% if recovery.q1 not in recovery_questions %}selected{% endif %}>Choose…</option>
+                {% for q in recovery_questions %}
+                <option value="{{ q }}" {% if q == recovery.q1 %}selected{% endif %}>{{ q }}</option>
+                {% endfor %}
+              </select>
+              <input name="recovery_a1" type="text" required maxlength="200" autocomplete="off"
+                class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all"
+                placeholder="Answer 1">
+            </div>
+            <div class="space-y-2">
+              <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="rq_q2">Question 2</label>
+              <select id="rq_q2" name="recovery_q2" required
+                class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all">
+                <option value="" disabled {% if recovery.q2 not in recovery_questions %}selected{% endif %}>Choose…</option>
+                {% for q in recovery_questions %}
+                <option value="{{ q }}" {% if q == recovery.q2 %}selected{% endif %}>{{ q }}</option>
+                {% endfor %}
+              </select>
+              <input name="recovery_a2" type="text" required maxlength="200" autocomplete="off"
+                class="w-full bg-input border-none rounded-md py-3 px-4 text-foreground focus:ring-0 focus:bg-popover transition-all"
+                placeholder="Answer 2">
+            </div>
+          </div>
+          <button type="submit"
+            class="primary-gradient text-primary-foreground font-headline font-bold px-6 py-3 rounded-md transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
+            <span class="material-symbols-outlined">save</span>
+            Save Recovery Questions
+          </button>
+        </form>
+      </div>
+    </details>
+
+    <div class="bg-card border border-destructive/40 rounded-xl p-8">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-destructive" style="font-variation-settings: 'FILL' 1;">warning</span>
+        <h3 class="font-headline font-bold text-lg text-destructive">Danger Zone</h3>
+      </div>
+      <p class="text-sm text-muted-foreground mb-5">
+        Deleting your account permanently removes <strong class="text-foreground">{{ account.credential_count }}</strong> encrypted credential{% if account.credential_count != 1 %}s{% endif %} and cannot be undone. Recovery questions will not bring it back.
+      </p>
+      <form action="/vault/settings/delete-account" method="post" class="space-y-4"
+        data-confirm="This will permanently delete your account and every credential in it. Continue?"
+        autocomplete="off">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="da_username">Type your username to confirm</label>
+            <input id="da_username" name="confirm_username" type="text" required autocomplete="off"
+              class="w-full bg-input border border-border rounded-md py-3 px-4 text-foreground focus:ring-2 focus:ring-destructive focus:bg-popover transition-all font-mono"
+              placeholder="{{ account.username }}">
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground" for="da_password">Master password</label>
+            <input id="da_password" name="current_password" type="password" required autocomplete="current-password"
+              class="w-full bg-input border border-border rounded-md py-3 px-4 text-foreground focus:ring-2 focus:ring-destructive focus:bg-popover transition-all font-mono">
+          </div>
+        </div>
+        <button type="submit"
+          class="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-headline font-bold px-6 py-3 rounded-md transition-colors active:scale-[0.98] flex items-center gap-2 shadow-sm">
+          <span class="material-symbols-outlined">delete_forever</span>
+          Delete Account Permanently
+        </button>
+      </form>
+    </div>
+  </div>
+</main>
+{% include "partials/_mobile_nav.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/confirm.js') }}"></script>
+{% endblock %}

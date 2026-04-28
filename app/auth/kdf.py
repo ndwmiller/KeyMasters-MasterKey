@@ -1,7 +1,15 @@
-# derives the aes-256 encryption key from the master password using pbkdf2
-# the key is never stored anywhere, it is computed fresh every time the user logs in
+# derives the aes-256 key encryption keys (KEKs) used to wrap/unwrap the
+# per-user Master Encryption Key (MEK). The MEK itself is what encrypts every
+# credential field; the KEK is just the derived key that wraps the MEK.
+#
+# We derive two distinct KEKs per user:
+#   - master KEK   = PBKDF2(master_password, kdf_salt)
+#   - recovery KEK = PBKDF2(normalized_security_answers, recovery_salt)
+# Both wrap the same MEK, so a successful unwrap with either KEK yields the
+# same MEK and the same access to credentials.
 
 import os
+import unicodedata
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -26,3 +34,23 @@ def derive_key(password: str, salt: bytes) -> bytes:
         iterations=_ITERATIONS,
     )
     return kdf.derive(password.encode("utf-8"))
+
+
+def normalize_answer(answer: str) -> str:
+    # Recovery answers are typically low-entropy human inputs. Normalizing
+    # whitespace, case, and unicode form lets users type "  Fluffy " on
+    # registration and "fluffy" on recovery and still match.
+    return unicodedata.normalize("NFKC", answer).strip().casefold()
+
+
+def derive_recovery_key(answer1: str, answer2: str, salt: bytes) -> bytes:
+    # Joining with a NUL byte that cannot appear in casefolded text guarantees
+    # ("ab", "cd") and ("a", "bcd") derive different keys.
+    material = f"{normalize_answer(answer1)}\x00{normalize_answer(answer2)}"
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=_KEY_LEN,
+        salt=salt,
+        iterations=_ITERATIONS,
+    )
+    return kdf.derive(material.encode("utf-8"))

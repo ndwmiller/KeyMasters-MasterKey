@@ -1,5 +1,7 @@
 import re
 
+from tests.conftest import register_form
+
 
 def _csrf(html: str) -> str:
     m = re.search(r'name="_csrf" value="([^"]+)"', html)
@@ -13,12 +15,7 @@ def _login(client, username: str = "alice", password: str = "Correct!horse1") ->
     token = _csrf(get.text)
     r = client.post(
         "/register",
-        data={
-            "username": username,
-            "master_password": password,
-            "confirm_password": password,
-            "_csrf": token,
-        },
+        data=register_form(username, password, csrf=token),
         follow_redirects=False,
     )
     assert r.status_code == 303

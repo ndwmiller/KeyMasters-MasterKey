@@ -9,8 +9,8 @@ function entropyBits(pw) {
 }
 
 function levelFor(bits) {
-  if (bits < 50) return { text: "Weak", pct: Math.min(35, bits * 0.7), color: "bg-error" };
-  if (bits < 80) return { text: "Moderate", pct: 55, color: "bg-tertiary" };
+  if (bits < 50) return { text: "Weak", pct: Math.min(35, bits * 0.7), color: "bg-destructive" };
+  if (bits < 80) return { text: "Moderate", pct: 55, color: "bg-amber-500" };
   if (bits < 120) return { text: "Strong", pct: 80, color: "bg-primary" };
   return { text: "Excellent", pct: 100, color: "bg-primary" };
 }

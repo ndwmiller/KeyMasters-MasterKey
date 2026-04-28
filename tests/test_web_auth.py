@@ -1,5 +1,7 @@
 import re
 
+from tests.conftest import register_form, register_payload
+
 
 def _csrf(html: str) -> str:
     m = re.search(r'name="_csrf" value="([^"]+)"', html)
@@ -9,10 +11,7 @@ def _csrf(html: str) -> str:
 
 def _register_api(client, username: str = "alice", password: str = "Correct!horse1") -> None:
     """Uses the JSON API to create a user (no HTML register route yet in Task 3)."""
-    r = client.post(
-        "/auth/register",
-        json={"username": username, "master_password": password},
-    )
+    r = client.post("/auth/register", json=register_payload(username, password))
     assert r.status_code == 201
 
 
@@ -111,16 +110,7 @@ def test_register_get_renders_form(client):
 def test_register_post_happy_auto_login(client):
     get = client.get("/register")
     token = _csrf(get.text)
-    r = client.post(
-        "/register",
-        data={
-            "username": "alice",
-            "master_password": "Correct!horse1",
-            "confirm_password": "Correct!horse1",
-            "_csrf": token,
-        },
-        follow_redirects=False,
-    )
+    r = client.post("/register", data=register_form(csrf=token), follow_redirects=False)
     assert r.status_code == 303
     assert r.headers["location"] == "/vault"
     set_cookie = r.headers.get("set-cookie", "").lower()
@@ -133,12 +123,7 @@ def test_register_post_mismatched_passwords(client):
     token = _csrf(get.text)
     r = client.post(
         "/register",
-        data={
-            "username": "alice",
-            "master_password": "Correct!horse1",
-            "confirm_password": "different password here",
-            "_csrf": token,
-        },
+        data=register_form(csrf=token, confirm="different password here"),
         follow_redirects=False,
     )
     assert r.status_code == 303
@@ -151,12 +136,7 @@ def test_register_post_short_password(client):
     token = _csrf(get.text)
     r = client.post(
         "/register",
-        data={
-            "username": "alice",
-            "master_password": "short",
-            "confirm_password": "short",
-            "_csrf": token,
-        },
+        data=register_form(csrf=token, password="short"),
         follow_redirects=False,
     )
     assert r.status_code == 303
@@ -171,30 +151,17 @@ def test_register_post_duplicate_username(client):
     # Now try to register alice through the HTML form.
     get = client.get("/register")
     token = _csrf(get.text)
-    r = client.post(
-        "/register",
-        data={
-            "username": "alice",
-            "master_password": "Correct!horse1",
-            "confirm_password": "Correct!horse1",
-            "_csrf": token,
-        },
-        follow_redirects=False,
-    )
+    r = client.post("/register", data=register_form(csrf=token), follow_redirects=False)
     assert r.status_code == 303
     assert r.headers["location"] == "/register"
     assert "mk_flash=" in r.headers.get("set-cookie", "").lower()
 
 
 def test_register_post_missing_csrf_403(client):
-    r = client.post(
-        "/register",
-        data={
-            "username": "alice",
-            "master_password": "Correct!horse1",
-            "confirm_password": "Correct!horse1",
-        },
-    )
+    # CSRF token field omitted → CSRF middleware should reject.
+    payload = register_form(csrf="")
+    payload.pop("_csrf")
+    r = client.post("/register", data=payload)
     assert r.status_code == 403
 
 

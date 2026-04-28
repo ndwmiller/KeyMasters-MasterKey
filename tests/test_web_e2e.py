@@ -1,5 +1,7 @@
 import re
 
+from tests.conftest import register_form
+
 
 def _csrf(html: str) -> str:
     m = re.search(r'name="_csrf" value="([^"]+)"', html)
@@ -12,12 +14,7 @@ def test_full_html_journey(client):
     token = _csrf(client.get("/register").text)
     r = client.post(
         "/register",
-        data={
-            "username": "alice",
-            "master_password": "Correct!horse1",
-            "confirm_password": "Correct!horse1",
-            "_csrf": token,
-        },
+        data=register_form(csrf=token),
         follow_redirects=False,
     )
     assert r.status_code == 303
@@ -99,12 +96,7 @@ def test_cross_user_isolation_in_html(client):
     alice_csrf = _csrf(client.get("/register").text)
     client.post(
         "/register",
-        data={
-            "username": "alice",
-            "master_password": "Correct!horse1",
-            "confirm_password": "Correct!horse1",
-            "_csrf": alice_csrf,
-        },
+        data=register_form("alice", csrf=alice_csrf),
         follow_redirects=False,
     )
     new_token = _csrf(client.get("/vault/new").text)
@@ -126,12 +118,7 @@ def test_cross_user_isolation_in_html(client):
     bob_csrf = _csrf(client.get("/register").text)
     client.post(
         "/register",
-        data={
-            "username": "bob",
-            "master_password": "Correct!horse1",
-            "confirm_password": "Correct!horse1",
-            "_csrf": bob_csrf,
-        },
+        data=register_form("bob", csrf=bob_csrf),
         follow_redirects=False,
     )
 

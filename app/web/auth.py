@@ -4,14 +4,17 @@
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
+from cryptography.exceptions import InvalidTag
 from fastapi import APIRouter, Cookie, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 
 from app.auth.jwt import JWTError, decode_token, issue_token
-from app.auth.kdf import derive_key, new_salt
+from app.auth.kdf import derive_key, derive_recovery_key, new_salt
 from app.auth.password import hash_master_password, verify_master_password
+from app.auth.recovery_questions import RECOVERY_QUESTIONS, is_valid_question
 from app.config import get_settings
+from app.crypto.encryption import new_mek, unwrap_key, wrap_key
 from app.db import repository as repo
 from app.schemas.user import RegisterRequest
 from app.web import csrf, flash
@@ -24,17 +27,11 @@ def _issue_session_cookie(
     response: Response,
     *,
     user_id: int,
-    master_password: str,
-    kdf_salt: bytes,
+    session_key: bytes,
 ) -> Response:
-    """Derive the AES key, create a session, mint a JWT, and set ``mk_session``.
-
-    Shared by the login and register success paths so cookie settings stay in
-    one place.
-    """
+    """Create a session, mint a JWT, and set ``mk_session``."""
     settings = get_settings()
-    key = derive_key(master_password, kdf_salt)
-    sid = request.app.state.sessions.create(user_id=user_id, key=key)
+    sid = request.app.state.sessions.create(user_id=user_id, key=session_key)
     token = issue_token(
         {"sub": str(user_id), "sid": sid},
         settings.jwt_secret,
@@ -92,7 +89,11 @@ def _render_register(request: Request) -> Response:
     response = templates.TemplateResponse(
         request,
         "auth/register.html",
-        {"csrf_token": token, "flashes": flashes},
+        {
+            "csrf_token": token,
+            "flashes": flashes,
+            "recovery_questions": RECOVERY_QUESTIONS,
+        },
     )
     response.set_cookie(
         csrf.COOKIE_NAME,
@@ -148,15 +149,19 @@ def login_post(
         return _redirect_with_flash(
             request, "/login", settings.jwt_secret, [("error", "Invalid credentials")]
         )
+    kek = derive_key(master_password, user["kdf_salt"])
+    try:
+        mek = unwrap_key(kek, user["master_wrapped_mek"])
+    except InvalidTag:
+        # Wrap should always open if bcrypt accepted; treat as a failed login
+        # to avoid leaking which factor disagreed.
+        limiter.record_failure(username)
+        return _redirect_with_flash(
+            request, "/login", settings.jwt_secret, [("error", "Invalid credentials")]
+        )
     limiter.clear(username)
     redirect = RedirectResponse(url="/vault", status_code=303)
-    return _issue_session_cookie(
-        request,
-        redirect,
-        user_id=user["id"],
-        master_password=master_password,
-        kdf_salt=user["kdf_salt"],
-    )
+    return _issue_session_cookie(request, redirect, user_id=user["id"], session_key=mek)
 
 
 @router.get("/register", response_class=HTMLResponse, name="web_register_get")
@@ -170,6 +175,10 @@ def register_post(
     username: str = Form(default=""),
     master_password: str = Form(default=""),
     confirm_password: str = Form(default=""),
+    recovery_q1: str = Form(default=""),
+    recovery_a1: str = Form(default=""),
+    recovery_q2: str = Form(default=""),
+    recovery_a2: str = Form(default=""),
     csrf_token: str | None = Form(default=None, alias="_csrf"),
     mk_csrf: str | None = Cookie(default=None),
 ) -> Response:
@@ -177,9 +186,15 @@ def register_post(
     if not csrf.validate(settings.jwt_secret, mk_csrf, csrf_token):
         raise HTTPException(status_code=403, detail="csrf failed")
 
-    # Validate with the same schema the JSON API uses.
     try:
-        valid = RegisterRequest(username=username, master_password=master_password)
+        valid = RegisterRequest(
+            username=username,
+            master_password=master_password,
+            recovery_q1=recovery_q1,
+            recovery_a1=recovery_a1,
+            recovery_q2=recovery_q2,
+            recovery_a2=recovery_a2,
+        )
     except ValidationError:
         return _redirect_with_flash(
             request, "/register", settings.jwt_secret, [("error", "Password must be at least 12 characters and contain an uppercase letter, a lowercase letter, and a symbol")]
@@ -190,13 +205,22 @@ def register_post(
             request, "/register", settings.jwt_secret, [("error", "Passwords do not match")]
         )
 
-    kdf_salt = new_salt()
+    mek = new_mek()
+    mp_salt = new_salt()
+    rec_salt = new_salt()
+    master_kek = derive_key(valid.master_password, mp_salt)
+    recovery_kek = derive_recovery_key(valid.recovery_a1, valid.recovery_a2, rec_salt)
     try:
         uid = repo.create_user(
             settings.db_path,
             username=valid.username,
             bcrypt_hash=hash_master_password(valid.master_password, cost=settings.bcrypt_cost),
-            kdf_salt=kdf_salt,
+            kdf_salt=mp_salt,
+            master_wrapped_mek=wrap_key(master_kek, mek),
+            recovery_salt=rec_salt,
+            recovery_q1=valid.recovery_q1,
+            recovery_q2=valid.recovery_q2,
+            recovery_wrapped_mek=wrap_key(recovery_kek, mek),
             created_at=datetime.now(timezone.utc).isoformat(),
         )
     except sqlite3.IntegrityError:
@@ -205,13 +229,7 @@ def register_post(
         )
 
     redirect = RedirectResponse(url="/vault", status_code=303)
-    return _issue_session_cookie(
-        request,
-        redirect,
-        user_id=uid,
-        master_password=valid.master_password,
-        kdf_salt=kdf_salt,
-    )
+    return _issue_session_cookie(request, redirect, user_id=uid, session_key=mek)
 
 
 @router.post("/logout", name="web_logout")
@@ -249,3 +267,130 @@ def logout_post(
     redirect.delete_cookie("mk_session", path="/")
     redirect.delete_cookie(csrf.COOKIE_NAME, path="/")
     return redirect
+
+
+@router.get("/forgot-password", response_class=HTMLResponse, name="web_forgot_get")
+def forgot_get(request: Request) -> Response:
+    settings = get_settings()
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
+    flashes = flash.read(settings.jwt_secret, request.cookies.get(flash.COOKIE_NAME))
+    templates = request.app.state.templates
+    response = templates.TemplateResponse(
+        request,
+        "auth/forgot.html",
+        {
+            "csrf_token": token,
+            "flashes": flashes,
+            "step": "lookup",
+            "username": "",
+            "questions": None,
+        },
+    )
+    response.set_cookie(
+        csrf.COOKIE_NAME,
+        token,
+        max_age=15 * 60,
+        httponly=True,
+        samesite="strict",
+        secure=request.url.scheme == "https",
+        path="/",
+    )
+    response.delete_cookie(flash.COOKIE_NAME, path="/")
+    return response
+
+
+@router.post("/forgot-password", name="web_forgot_lookup")
+def forgot_lookup(
+    request: Request,
+    username: str = Form(default=""),
+    csrf_token: str | None = Form(default=None, alias="_csrf"),
+    mk_csrf: str | None = Cookie(default=None),
+) -> Response:
+    settings = get_settings()
+    if not csrf.validate(settings.jwt_secret, mk_csrf, csrf_token):
+        raise HTTPException(status_code=403, detail="csrf failed")
+    user = repo.get_user_by_username(settings.db_path, username.strip())
+    if user is None:
+        return _redirect_with_flash(
+            request,
+            "/forgot-password",
+            settings.jwt_secret,
+            [("error", "No vault was found for that username.")],
+        )
+    token = csrf.ensure_token(settings.jwt_secret, request.cookies.get(csrf.COOKIE_NAME))
+    templates = request.app.state.templates
+    response = templates.TemplateResponse(
+        request,
+        "auth/forgot.html",
+        {
+            "csrf_token": token,
+            "flashes": [],
+            "step": "answer",
+            "username": user["username"],
+            "questions": (user["recovery_q1"], user["recovery_q2"]),
+        },
+    )
+    response.set_cookie(
+        csrf.COOKIE_NAME,
+        token,
+        max_age=15 * 60,
+        httponly=True,
+        samesite="strict",
+        secure=request.url.scheme == "https",
+        path="/",
+    )
+    return response
+
+
+@router.post("/forgot-password/recover", name="web_forgot_recover")
+def forgot_recover(
+    request: Request,
+    username: str = Form(default=""),
+    answer1: str = Form(default=""),
+    answer2: str = Form(default=""),
+    new_password: str = Form(default=""),
+    confirm_password: str = Form(default=""),
+    csrf_token: str | None = Form(default=None, alias="_csrf"),
+    mk_csrf: str | None = Cookie(default=None),
+) -> Response:
+    settings = get_settings()
+    if not csrf.validate(settings.jwt_secret, mk_csrf, csrf_token):
+        raise HTTPException(status_code=403, detail="csrf failed")
+
+    if len(new_password) < 12 or len(new_password) > 1024 or new_password != confirm_password:
+        return _redirect_with_flash(
+            request,
+            "/forgot-password",
+            settings.jwt_secret,
+            [("error", "New password must be at least 12 characters and match confirmation.")],
+        )
+
+    user = repo.get_user_by_username(settings.db_path, username.strip())
+    if user is None:
+        return _redirect_with_flash(
+            request, "/forgot-password", settings.jwt_secret,
+            [("error", "Recovery failed. Please verify your answers.")],
+        )
+
+    recovery_kek = derive_recovery_key(answer1, answer2, user["recovery_salt"])
+    try:
+        mek = unwrap_key(recovery_kek, user["recovery_wrapped_mek"])
+    except InvalidTag:
+        return _redirect_with_flash(
+            request, "/forgot-password", settings.jwt_secret,
+            [("error", "Recovery failed. Please verify your answers.")],
+        )
+
+    new_mp_salt = new_salt()
+    new_master_kek = derive_key(new_password, new_mp_salt)
+    repo.update_user_master_password(
+        settings.db_path,
+        user_id=user["id"],
+        bcrypt_hash=hash_master_password(new_password, cost=settings.bcrypt_cost),
+        kdf_salt=new_mp_salt,
+        master_wrapped_mek=wrap_key(new_master_kek, mek),
+    )
+    return _redirect_with_flash(
+        request, "/login", settings.jwt_secret,
+        [("success", "Master password reset. Please unlock your vault.")],
+    )

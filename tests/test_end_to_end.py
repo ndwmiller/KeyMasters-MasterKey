@@ -1,8 +1,8 @@
+from tests.conftest import register_payload
+
+
 def test_full_user_journey(client):
-    client.post(
-        "/auth/register",
-        json={"username": "alice", "master_password": "Correct!horse1"},
-    )
+    client.post("/auth/register", json=register_payload())
     token = client.post(
         "/auth/login",
         json={"username": "alice", "master_password": "Correct!horse1"},

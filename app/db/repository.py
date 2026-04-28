@@ -12,20 +12,48 @@ def create_user(
     username: str,
     bcrypt_hash: bytes,
     kdf_salt: bytes,
+    master_wrapped_mek: bytes,
+    recovery_salt: bytes,
+    recovery_q1: str,
+    recovery_q2: str,
+    recovery_wrapped_mek: bytes,
     created_at: str,
 ) -> int:
     with connect(db_path) as conn:
         cur = conn.execute(
-            "INSERT INTO users (username, bcrypt_hash, kdf_salt, created_at) VALUES (?, ?, ?, ?)",
-            (username, bcrypt_hash, kdf_salt, created_at),
+            "INSERT INTO users ("
+            "  username, bcrypt_hash, kdf_salt,"
+            "  master_wrapped_mek, recovery_salt,"
+            "  recovery_q1, recovery_q2, recovery_wrapped_mek,"
+            "  created_at"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                username,
+                bcrypt_hash,
+                kdf_salt,
+                master_wrapped_mek,
+                recovery_salt,
+                recovery_q1,
+                recovery_q2,
+                recovery_wrapped_mek,
+                created_at,
+            ),
         )
         return cur.lastrowid
+
+
+_USER_FIELDS = (
+    "id, username, bcrypt_hash, kdf_salt,"
+    " master_wrapped_mek, recovery_salt,"
+    " recovery_q1, recovery_q2, recovery_wrapped_mek,"
+    " created_at"
+)
 
 
 def get_user_by_username(db_path: str, username: str) -> dict[str, Any] | None:
     with connect(db_path) as conn:
         row = conn.execute(
-            "SELECT id, username, bcrypt_hash, kdf_salt, created_at FROM users WHERE username = ?",
+            f"SELECT {_USER_FIELDS} FROM users WHERE username = ?",
             (username,),
         ).fetchone()
         return dict(row) if row else None
@@ -34,10 +62,50 @@ def get_user_by_username(db_path: str, username: str) -> dict[str, Any] | None:
 def get_user_by_id(db_path: str, user_id: int) -> dict[str, Any] | None:
     with connect(db_path) as conn:
         row = conn.execute(
-            "SELECT id, username, bcrypt_hash, kdf_salt, created_at FROM users WHERE id = ?",
+            f"SELECT {_USER_FIELDS} FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         return dict(row) if row else None
+
+
+def update_user_master_password(
+    db_path: str,
+    *,
+    user_id: int,
+    bcrypt_hash: bytes,
+    kdf_salt: bytes,
+    master_wrapped_mek: bytes,
+) -> bool:
+    with connect(db_path) as conn:
+        cur = conn.execute(
+            "UPDATE users SET bcrypt_hash = ?, kdf_salt = ?, master_wrapped_mek = ? WHERE id = ?",
+            (bcrypt_hash, kdf_salt, master_wrapped_mek, user_id),
+        )
+        return cur.rowcount == 1
+
+
+def update_user_recovery(
+    db_path: str,
+    *,
+    user_id: int,
+    recovery_salt: bytes,
+    recovery_q1: str,
+    recovery_q2: str,
+    recovery_wrapped_mek: bytes,
+) -> bool:
+    with connect(db_path) as conn:
+        cur = conn.execute(
+            "UPDATE users SET recovery_salt = ?, recovery_q1 = ?, recovery_q2 = ?, recovery_wrapped_mek = ? WHERE id = ?",
+            (recovery_salt, recovery_q1, recovery_q2, recovery_wrapped_mek, user_id),
+        )
+        return cur.rowcount == 1
+
+
+def delete_user(db_path: str, *, user_id: int) -> bool:
+    # ON DELETE CASCADE on credentials.user_id removes the user's encrypted rows.
+    with connect(db_path) as conn:
+        cur = conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        return cur.rowcount == 1
 
 
 def create_credential(

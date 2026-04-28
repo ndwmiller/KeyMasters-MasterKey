@@ -6,38 +6,68 @@ from app.schemas.user import LoginRequest, RegisterRequest
 
 
 _GOOD_PW = "Correct!horse1"  # meets all rules: upper, lower, symbol, 12+ chars
+_DEFAULTS = dict(
+    recovery_q1="What was the name of your first pet?",
+    recovery_a1="Fluffy",
+    recovery_q2="In what city were you born?",
+    recovery_a2="Boston",
+)
 
 
 def test_register_requires_min_password_length():
     with pytest.raises(ValidationError):
-        RegisterRequest(username="alice", master_password="short")
-    ok = RegisterRequest(username="alice", master_password=_GOOD_PW)
+        RegisterRequest(username="alice", master_password="Sh0rt!", **_DEFAULTS)
+    ok = RegisterRequest(username="alice", master_password=_GOOD_PW, **_DEFAULTS)
     assert ok.username == "alice"
 
 
 def test_register_rejects_missing_uppercase():
     with pytest.raises(ValidationError):
-        RegisterRequest(username="alice", master_password="nouppercase!1")
+        RegisterRequest(username="alice", master_password="nouppercase!1", **_DEFAULTS)
 
 
 def test_register_rejects_missing_lowercase():
     with pytest.raises(ValidationError):
-        RegisterRequest(username="alice", master_password="NOLOWERCASE!1")
+        RegisterRequest(username="alice", master_password="NOLOWERCASE!1", **_DEFAULTS)
 
 
 def test_register_rejects_missing_symbol():
     with pytest.raises(ValidationError):
-        RegisterRequest(username="alice", master_password="NoSymbolHere12")
+        RegisterRequest(username="alice", master_password="NoSymbolHere12", **_DEFAULTS)
 
 
 def test_register_rejects_empty_username():
     with pytest.raises(ValidationError):
-        RegisterRequest(username="", master_password=_GOOD_PW)
+        RegisterRequest(username="", master_password=_GOOD_PW, **_DEFAULTS)
 
 
 def test_register_strips_whitespace_username():
-    r = RegisterRequest(username="  alice  ", master_password=_GOOD_PW)
+    r = RegisterRequest(username="  alice  ", master_password=_GOOD_PW, **_DEFAULTS)
     assert r.username == "alice"
+
+
+def test_register_rejects_unknown_question():
+    with pytest.raises(ValidationError):
+        RegisterRequest(
+            username="alice",
+            master_password=_GOOD_PW,
+            recovery_q1="What is the airspeed velocity of an unladen swallow?",
+            recovery_a1="african or european",
+            recovery_q2="In what city were you born?",
+            recovery_a2="Boston",
+        )
+
+
+def test_register_rejects_duplicate_questions():
+    with pytest.raises(ValidationError):
+        RegisterRequest(
+            username="alice",
+            master_password=_GOOD_PW,
+            recovery_q1="In what city were you born?",
+            recovery_a1="Boston",
+            recovery_q2="In what city were you born?",
+            recovery_a2="Boston",
+        )
 
 
 def test_login_accepts_any_nonempty_password():

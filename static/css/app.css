@@ -1,11 +1,101 @@
+/*
+ * Theme tokens — shadcn-style OKLCH palette wired for Tailwind v3 (CDN).
+ *
+ * Each --token holds only the OKLCH components (lightness, chroma, hue) —
+ * the wrapping oklch(...) call is added in the Tailwind config so that
+ * `bg-primary/50`, `text-foreground/80`, etc. interpolate the alpha
+ * correctly via Tailwind's <alpha-value> placeholder.
+ */
+
+:root {
+  --background: 0.9818 0.0054 95.0986;
+  --foreground: 0.3438 0.0269 95.7226;
+  --card: 0.9818 0.0054 95.0986;
+  --card-foreground: 0.1908 0.0020 106.5859;
+  --popover: 1.0000 0 0;
+  --popover-foreground: 0.2671 0.0196 98.9390;
+  --primary: 0.6171 0.1375 39.0427;
+  --primary-foreground: 1.0000 0 0;
+  --secondary: 0.9245 0.0138 92.9892;
+  --secondary-foreground: 0.4334 0.0177 98.6048;
+  --muted: 0.9341 0.0153 90.2390;
+  --muted-foreground: 0.6059 0.0075 97.4233;
+  --accent: 0.9245 0.0138 92.9892;
+  --accent-foreground: 0.2671 0.0196 98.9390;
+  --destructive: 0.1908 0.0020 106.5859;
+  --destructive-foreground: 1.0000 0 0;
+  --border: 0.8847 0.0069 97.3627;
+  --input: 0.7621 0.0156 98.3528;
+  --ring: 0.6171 0.1375 39.0427;
+  --sidebar: 0.9663 0.0080 98.8792;
+  --sidebar-foreground: 0.3590 0.0051 106.6524;
+  --sidebar-primary: 0.6171 0.1375 39.0427;
+  --sidebar-primary-foreground: 0.9881 0 0;
+  --sidebar-accent: 0.9245 0.0138 92.9892;
+  --sidebar-accent-foreground: 0.3250 0 0;
+  --sidebar-border: 0.9401 0 0;
+  --sidebar-ring: 0.7731 0 0;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 0.2679 0.0036 106.6427;
+  --foreground: 0.8074 0.0142 93.0137;
+  --card: 0.2679 0.0036 106.6427;
+  --card-foreground: 0.9818 0.0054 95.0986;
+  --popover: 0.3085 0.0035 106.6039;
+  --popover-foreground: 0.9211 0.0040 106.4781;
+  --primary: 0.6724 0.1308 38.7559;
+  --primary-foreground: 1.0000 0 0;
+  --secondary: 0.9818 0.0054 95.0986;
+  --secondary-foreground: 0.3085 0.0035 106.6039;
+  --muted: 0.2213 0.0038 106.7070;
+  --muted-foreground: 0.7713 0.0169 99.0657;
+  --accent: 0.2130 0.0078 95.4245;
+  --accent-foreground: 0.9663 0.0080 98.8792;
+  --destructive: 0.6368 0.2078 25.3313;
+  --destructive-foreground: 1.0000 0 0;
+  --border: 0.3618 0.0101 106.8928;
+  --input: 0.4336 0.0113 100.2195;
+  --ring: 0.6724 0.1308 38.7559;
+  --sidebar: 0.2357 0.0024 67.7077;
+  --sidebar-foreground: 0.8074 0.0142 93.0137;
+  --sidebar-primary: 0.3250 0 0;
+  --sidebar-primary-foreground: 0.9881 0 0;
+  --sidebar-accent: 0.1680 0.0020 106.6177;
+  --sidebar-accent-foreground: 0.8074 0.0142 93.0137;
+  --sidebar-border: 0.9401 0 0;
+  --sidebar-ring: 0.7731 0 0;
+}
+
+/* Defensive base — keeps body color and unstyled border colors aligned with
+ * the active theme even if a class doesn't override them. */
+body {
+  background-color: oklch(var(--background));
+  color: oklch(var(--foreground));
+}
+
+/* Tailwind utilities still win because their selectors are class-level (higher
+ * specificity than this universal selector). */
+* {
+  border-color: oklch(var(--border));
+}
+
 .glass-panel {
-  background: rgba(19, 27, 46, 0.7);
+  background-color: oklch(var(--card) / 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
+/* Primary button surface — kept as a class because every CTA template
+ * already uses `primary-gradient`. We're now a solid shadcn-style button:
+ * flat primary with a subtle hover dim. */
 .primary-gradient {
-  background: linear-gradient(135deg, #4edea3 0%, #009567 100%);
+  background-color: oklch(var(--primary));
+  color: oklch(var(--primary-foreground));
+}
+.primary-gradient:hover {
+  background-color: oklch(var(--primary) / 0.9);
 }
 
 .material-symbols-outlined {
@@ -15,4 +105,30 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+@keyframes mk-toast-in {
+  0%   { opacity: 0; transform: translate3d(24px, -8px, 0) scale(0.96); }
+  60%  { opacity: 1; transform: translate3d(0, 0, 0) scale(1.01); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes mk-toast-pulse {
+  0%, 100% { box-shadow: 0 18px 48px -12px rgba(0, 0, 0, 0.55), 0 0 0 0 rgba(220, 38, 38, 0.45); }
+  50%      { box-shadow: 0 18px 48px -12px rgba(0, 0, 0, 0.55), 0 0 0 12px rgba(220, 38, 38, 0); }
+}
+
+.mk-toast {
+  animation: mk-toast-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.mk-toast-error {
+  animation:
+    mk-toast-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    mk-toast-pulse 1.6s ease-out 260ms 2;
+}
+
+.dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, oklch(var(--foreground) / 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
 }

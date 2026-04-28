@@ -1,12 +1,33 @@
 {% set _flashes = flashes | default([]) %}
 {% if _flashes %}
-<div class="fixed top-20 right-6 z-50 space-y-2">
+<div class="fixed top-24 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 z-[60] w-[min(92vw,420px)] space-y-3 pointer-events-none">
   {% for category, msg in _flashes %}
-    <div class="px-4 py-3 rounded-md border text-sm
-      {% if category == 'error' %}bg-error-container/20 border-error/40 text-error
-      {% elif category == 'success' %}bg-primary/10 border-primary/40 text-primary
-      {% else %}bg-surface-container-high border-outline-variant/20 text-on-surface{% endif %}">
-      {{ msg }}
+    {% if category == 'error' %}
+      {% set toast_bg = 'bg-destructive' %}
+      {% set toast_border = 'border-destructive/40' %}
+      {% set toast_icon = 'error' %}
+      {% set toast_label = 'Heads up' %}
+      {% set toast_extra = 'mk-toast-error' %}
+    {% elif category == 'success' %}
+      {% set toast_bg = 'bg-primary' %}
+      {% set toast_border = 'border-primary/40' %}
+      {% set toast_icon = 'check_circle' %}
+      {% set toast_label = 'Success' %}
+      {% set toast_extra = '' %}
+    {% else %}
+      {% set toast_bg = 'bg-sky-500' %}
+      {% set toast_border = 'border-sky-200/40' %}
+      {% set toast_icon = 'info' %}
+      {% set toast_label = 'Notice' %}
+      {% set toast_extra = '' %}
+    {% endif %}
+    <div role="alert" aria-live="assertive"
+      class="mk-toast {{ toast_extra }} pointer-events-auto flex items-start gap-3 px-5 py-4 rounded-xl border-2 {{ toast_border }} {{ toast_bg }} text-white shadow-2xl shadow-black/60 ring-1 ring-white/10 backdrop-blur-sm">
+      <span class="material-symbols-outlined text-2xl shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">{{ toast_icon }}</span>
+      <div class="flex-1 min-w-0">
+        <p class="font-headline font-bold text-[11px] uppercase tracking-[0.18em] text-white/80 mb-0.5">{{ toast_label }}</p>
+        <p class="font-inter text-sm font-semibold leading-snug break-words">{{ msg }}</p>
+      </div>
     </div>
   {% endfor %}
 </div>

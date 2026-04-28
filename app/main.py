@@ -16,6 +16,7 @@ from app.db.connection import init_schema
 from app.errors import register_error_handlers
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.web.auth import router as web_auth_router
+from app.web.settings import router as web_settings_router
 from app.web.vault import router as web_vault_router
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -39,6 +40,10 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(credentials_router)
     app.include_router(web_auth_router)
+    # settings router must come before the catch-all vault router so that
+    # /vault/settings is matched as a literal path before the /vault/{cid:int}
+    # dynamic route is even considered
+    app.include_router(web_settings_router)
     app.include_router(web_vault_router)
 
     static_dir = _ROOT / "static"
