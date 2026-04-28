@@ -517,12 +517,35 @@
     letter-spacing: 5px;
     color: var(--ink-3);
   }
-  .terminal .body { margin-top: 10px; }
+  .terminal .body { margin-top: 10px; white-space: pre-wrap; }
   .terminal .p { color: var(--accent-2); }
   .terminal .ok { color: #B8D4A8; }
   .terminal .err { color: #E8B4A0; }
   .terminal .warn { color: var(--accent-2); }
   .terminal .dim { color: var(--ink-3); }
+  .terminal .copy-btn {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: rgba(232, 229, 220, 0.06);
+    color: #E8E5DC;
+    border: 1px solid rgba(232, 229, 220, 0.18);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-family: var(--sans, ui-sans-serif, system-ui, sans-serif);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    z-index: 2;
+  }
+  .terminal .copy-btn:hover { background: rgba(232, 229, 220, 0.14); border-color: rgba(232, 229, 220, 0.4); }
+  .terminal .copy-btn[data-copied="1"] {
+    background: #B8D4A8;
+    color: #1a1a1a;
+    border-color: #B8D4A8;
+  }
 
   .pane {
     border-top: 1px solid var(--ink);
@@ -984,13 +1007,8 @@
     </div>
     <div class="demo">
       <div class="terminal">
-<div class="body"><span class="dim"># paste this into a shell — server runs at localhost:8000</span>
-<span class="p">for i in 1 2 3 4 5 6 7; do
-  curl -s -o /dev/null -w "attempt $i → %{http_code}\n" \
-    http://localhost:8000/auth/login \
-    -H 'Content-Type: application/json' \
-    -d "{\"username\":\"alice\",\"master_password\":\"guess$i\"}"
-done</span></div>
+<div class="body"><span class="dim"># prereq: uvicorn running, demo/seed.sh has been run once</span>
+<span class="p">bash demo/01-bruteforce.sh</span></div>
       </div>
       <div class="pane">
         <span class="label">What you'll see</span>
@@ -1025,16 +1043,8 @@ done</span></div>
     </div>
     <div class="demo">
       <div class="terminal">
-<div class="body"><span class="dim"># attacker has the file — open it directly with sqlite3</span>
-<span class="p">sqlite3 master_key.sqlite \
-  "SELECT id, hex(service_enc), hex(password_enc) FROM credentials LIMIT 1;"
-
-sqlite3 master_key.sqlite \
-  "SELECT username, hex(bcrypt_hash) FROM users LIMIT 1;"
-
-strings master_key.sqlite \
-  | grep -iE 'github|hunter2' \
-  || echo '[no plaintext credentials found]'</span></div>
+<div class="body"><span class="dim"># prereq: demo/seed.sh has been run, master_key.sqlite exists</span>
+<span class="p">bash demo/02-dbtheft.sh</span></div>
       </div>
       <div class="pane">
         <span class="label">What you'll see</span>
@@ -1070,19 +1080,8 @@ strings master_key.sqlite \
     </div>
     <div class="demo">
       <div class="terminal">
-<div class="body"><span class="dim"># one-time setup: log in and capture the session jar</span>
-<span class="p">JAR=/tmp/mk.jar; B=http://localhost:8000
-TOK=$(curl -sc $JAR -b $JAR $B/login \
-  | grep -oE 'value="[^"]+"' | head -1 \
-  | tr -d '"' | sed 's/value=//')
-curl -sc $JAR -b $JAR -XPOST $B/login \
-  -d "username=alice&amp;master_password=Correct!horse1&amp;_csrf=$TOK" \
-  -o /dev/null -w "login → %{http_code}\n"</span>
-
-<span class="dim"># attack: reuse the session cookie, drop the csrf token</span>
-<span class="p">curl -sb $JAR -XPOST $B/vault/new \
-  -d 'service=evil&amp;password=x' \
-  -o /dev/null -w "no csrf → %{http_code}\n"</span></div>
+<div class="body"><span class="dim"># prereq: bash demo/login.sh (once, to set up /tmp/mk.jar)</span>
+<span class="p">bash demo/03-csrf.sh</span></div>
       </div>
       <div class="pane">
         <span class="label">What you'll see</span>
@@ -1266,6 +1265,35 @@ curl -sc $JAR -b $JAR -XPOST $B/login \
     }
   }
   document.addEventListener('DOMContentLoaded', () => new Deck(document.getElementById('deck')));
+
+  // Wire up copy buttons on every terminal block. Clicking pulls the text
+  // out of the .p spans only (skipping comments/output styling) so what
+  // lands on the clipboard is exactly what the audience needs to paste.
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.terminal').forEach((term) => {
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.type = 'button';
+      btn.textContent = 'Copy';
+      btn.addEventListener('click', async () => {
+        const cmds = [...term.querySelectorAll('.body .p')]
+          .map((el) => el.textContent.trim())
+          .filter(Boolean)
+          .join('\n\n');
+        try {
+          await navigator.clipboard.writeText(cmds);
+          btn.textContent = 'Copied';
+          btn.dataset.copied = '1';
+          setTimeout(() => { btn.textContent = 'Copy'; delete btn.dataset.copied; }, 1400);
+        } catch (e) {
+          console.error('Clipboard write failed:', e);
+          btn.textContent = 'Failed';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
+        }
+      });
+      term.appendChild(btn);
+    });
+  });
 </script>
 </body>
 </html>
