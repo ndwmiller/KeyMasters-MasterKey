@@ -145,18 +145,34 @@ pytest --cov=app --cov-report=term-missing                  # coverage
 
 `presentation.html` is a 12-slide deck for the project demo. Slides 7–9 are live attack/defense demos (rate-limit brute force, DB-theft attempt, CSRF rejection); each terminal block has a copy button.
 
-To run the demos:
+### `demo/` scripts
+
+Every command shown on slides 7–9 also exists as a stand-alone shell script in the [`demo/`](demo/) directory, so you can run the same flow from a terminal even if pasting a multi-line block into your shell goes sideways.
+
+| Script | What it does |
+|---|---|
+| [`demo/seed.sh`](demo/seed.sh) | Pre-talk setup: registers `alice` and stores one `github`/`hunter2` credential so slide 8 has real ciphertext to inspect. Detects rate-limit lockout (HTTP 429) and tells you to restart uvicorn. |
+| [`demo/login.sh`](demo/login.sh) | Logs in via the HTML form and writes the session + CSRF cookies to `/tmp/mk.jar`. Run this once before slide 9. |
+| [`demo/01-bruteforce.sh`](demo/01-bruteforce.sh) | **Slide 7.** Loops seven wrong-password attempts against `/auth/login`. Expected output: attempts 1–5 → `401`, 6+ → `429`. |
+| [`demo/02-dbtheft.sh`](demo/02-dbtheft.sh) | **Slide 8.** Opens `master_key.sqlite` directly with `sqlite3`, dumps a credential row in hex, prints the bcrypt hash, and `strings | grep`s for plaintext. |
+| [`demo/03-csrf.sh`](demo/03-csrf.sh) | **Slide 9.** Issues two `POST /vault/new` requests against the logged-in jar — one without `_csrf` (expect `403`), one with it (expect `303`). |
+
+### Running the demos
 
 ```bash
 # Terminal 1 — start the server from the repo root and leave it running
 .venv/bin/uvicorn --factory app.main:create_app --port 8000
 
-# Terminal 2 — seed alice + a credential (once)
+# Terminal 2 — seed alice + a credential (once before the talk)
 bash demo/seed.sh
-bash demo/login.sh   # only needed before the CSRF slide
+bash demo/login.sh    # only needed before the CSRF demo (slide 9)
 ```
 
-Then either click the slide's Copy button and paste, or run the equivalent `demo/01-bruteforce.sh`, `demo/02-dbtheft.sh`, `demo/03-csrf.sh`.
+Then either click the slide's Copy button and paste, or run the equivalent script: `bash demo/01-bruteforce.sh`, etc.
+
+> **Recommended order: 8 → 9 → 7.** The brute-force demo locks `alice` out of the in-memory rate limiter for 15 minutes; running it last means you don't need to restart uvicorn between slides. If you do run slide 7 first, restart uvicorn before re-running `seed.sh` or slide 9.
+
+### Why no seeded database?
 
 We do **not** ship a pre-seeded database. A seeded DB would contain bcrypt hashes tied to a known password, which could be cracked offline — contradicting the security model we are demonstrating. Creating your own vault takes under a minute and produces a database genuinely encrypted with a key only you hold.
 
