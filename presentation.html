@@ -1,0 +1,1271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Master Key · KeyMasters · CSC 327</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- General Sans · closest free match to Anthropic's Styrene A -->
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+<style>
+  /* ── Anthropic-inspired palette ─────────────────────────── */
+  :root {
+    --paper:      #F5F1E8;   /* cream, warm, slightly desaturated */
+    --paper-2:    #EEE8DA;   /* darker cream for cards/insets */
+    --ink:        #191917;   /* warm near-black */
+    --ink-2:      #4A4842;   /* warm body gray */
+    --ink-3:      #8A8579;   /* subtle / metadata */
+    --line:       rgba(25, 25, 23, 0.12);
+    --line-soft:  rgba(25, 25, 23, 0.06);
+
+    --accent:     #CC785C;   /* Claude terracotta */
+    --accent-2:   #D4A574;   /* warm ochre for secondary */
+    --accent-ink: #8B4423;   /* darker terracotta for text contrast */
+
+    --serif: 'Source Serif 4', 'Tiempos', Georgia, serif;
+    --sans:  'General Sans', 'Styrene', 'Inter', system-ui, sans-serif;
+    --mono:  'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font-family: var(--sans);
+    font-feature-settings: 'ss01', 'ss02';
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .deck { height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    height: 100vh; height: 100dvh;
+    width: 100vw;
+    overflow: hidden;
+    padding: clamp(64px, 8vh, 110px) clamp(72px, 9vw, 160px);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 600ms cubic-bezier(0.4, 0, 0.2, 1), transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--paper);
+  }
+  .slide.is-active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+  /* very subtle paper grain */
+  .slide::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 25% 30%, rgba(204, 120, 92, 0.025) 1px, transparent 1px),
+      radial-gradient(circle at 75% 70%, rgba(25, 25, 23, 0.018) 1px, transparent 1px);
+    background-size: 4px 4px, 7px 7px;
+    opacity: 0.6;
+  }
+
+  /* ── chrome (page numbers & section labels) ──────────────── */
+  .chrome {
+    position: absolute;
+    left: clamp(56px, 7vw, 130px);
+    right: clamp(56px, 7vw, 130px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--ink-2);
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 4;
+  }
+  .chrome-top { top: clamp(36px, 4vh, 56px); }
+  .chrome-bot { bottom: clamp(36px, 4vh, 56px); }
+  .chrome-top span:first-child { color: var(--ink); }
+  .chrome .asterisk { width: 24px; height: 24px; }
+
+  /* ── Anthropic asterisk/star mark ────────────────────────── */
+  .asterisk {
+    width: 22px; height: 22px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .mark-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ── typography ──────────────────────────────────────────── */
+  h1, h2, h3, h4 { margin: 0; font-weight: 400; letter-spacing: -0.018em; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: clamp(28px, 3.4vh, 40px);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 44px; height: 2px;
+    background: var(--accent);
+  }
+
+  h2.section {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(48px, 6.6vw, 96px);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    max-width: 18ch;
+    padding-bottom: 0.06em;
+  }
+  h2.section em {
+    font-style: italic;
+    font-family: var(--serif);
+  }
+  h2.section .a { color: var(--accent); }
+
+  .lead {
+    font-family: var(--serif);
+    font-size: clamp(17px, 1.5vw, 21px);
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 56ch;
+    margin: clamp(24px, 3vh, 32px) 0 0;
+    font-weight: 400;
+  }
+  .lead .a { color: var(--accent-ink); }
+
+  .mono { font-family: var(--mono); }
+  .center-col { flex: 1; display: flex; flex-direction: column; justify-content: center; z-index: 2; }
+
+  /* ── nav ──────────────────────────────────────────────────── */
+  .progress { display: none; }
+  .ctrls {
+    position: fixed; bottom: 28px; right: 36px;
+    display: flex; gap: 6px; z-index: 10;
+  }
+  .ctrls button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink-2);
+    width: 34px; height: 34px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 14px;
+    border-radius: 2px;
+    transition: 200ms;
+  }
+  .ctrls button:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide { transition: none; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 1 · TITLE
+     ═══════════════════════════════════════════════════════════ */
+  .s1 {
+    padding: clamp(72px, 9vh, 130px) clamp(72px, 9vw, 160px);
+  }
+  .s1 .stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 2;
+  }
+  .s1 .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .s1 .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .s1 .wordmark .star {
+    width: 28px; height: 28px;
+    color: var(--accent);
+  }
+  .s1 .doc-id {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: right;
+    line-height: 1.7;
+  }
+  .s1 .doc-id .row { display: block; }
+
+  .s1 h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(96px, 13.5vw, 220px);
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+  }
+  .s1 h1 .it { font-style: italic; color: var(--accent); }
+
+  .s1 .sub {
+    margin-top: clamp(22px, 2.8vh, 32px);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(20px, 1.8vw, 26px);
+    color: var(--ink-2);
+    max-width: 36ch;
+    line-height: 1.4;
+    font-weight: 400;
+  }
+
+  .s1 .footer {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(20px, 2.4vw, 36px);
+    border-top: 1px solid var(--line);
+    padding-top: clamp(22px, 2.8vh, 32px);
+  }
+  .s1 .meta-cell .label {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 10px;
+  }
+  .s1 .meta-cell .value {
+    font-family: var(--sans);
+    font-size: 18px;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 2 · PROBLEM
+     ═══════════════════════════════════════════════════════════ */
+  .s2 .row {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: clamp(48px, 6vw, 110px);
+    align-items: center;
+    z-index: 2;
+  }
+  .stats { display: flex; flex-direction: column; gap: clamp(40px, 5.4vh, 64px); }
+  .stat { border-top: 1px solid var(--line); padding-top: clamp(18px, 2.2vh, 24px); }
+  .stat .num {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(80px, 8.8vw, 130px);
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+  .stat .num.warn { color: var(--ink); }
+  .stat .cap {
+    margin-top: clamp(14px, 1.8vh, 20px);
+    font-family: var(--serif);
+    font-size: clamp(18px, 1.3vw, 21px);
+    line-height: 1.45;
+    color: var(--ink-2);
+    max-width: 30ch;
+  }
+  .stat .cap .src {
+    display: block;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    margin-top: 10px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 3 · WHAT WE BUILT
+     ═══════════════════════════════════════════════════════════ */
+  .s3 .grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(28px, 3.4vw, 56px);
+    align-content: center;
+    z-index: 2;
+  }
+  .feat {
+    border-top: 1px solid var(--ink);
+    padding-top: clamp(22px, 2.6vh, 30px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .feat .num {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--accent-ink);
+  }
+  .feat h3 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(26px, 2.3vw, 34px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .feat p {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(16px, 1.15vw, 18px);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 4 · WHAT CHANGED
+     ═══════════════════════════════════════════════════════════ */
+  .s4 .list {
+    flex: 1;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    z-index: 2;
+    max-width: 1200px;
+  }
+  .change {
+    display: grid;
+    grid-template-columns: 56px 1fr 320px;
+    gap: clamp(20px, 2.4vw, 36px);
+    padding: clamp(18px, 2vh, 24px) 0;
+    border-top: 1px solid var(--line-soft);
+    align-items: baseline;
+  }
+  .change:first-child { border-top: 1px solid var(--ink); }
+  .change:last-child  { border-bottom: 1px solid var(--line-soft); }
+  .change .id {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  .change .what {
+    font-family: var(--serif);
+    font-size: clamp(22px, 1.8vw, 28px);
+    color: var(--ink);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .change .what em { font-style: italic; color: var(--ink-2); }
+  .change .file {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-align: right;
+    letter-spacing: 0.02em;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 5 · TECH STACK
+     ═══════════════════════════════════════════════════════════ */
+  .s5 .table {
+    flex: 0 1 auto;
+    display: grid;
+    grid-template-columns: 220px 1fr 300px;
+    column-gap: clamp(28px, 3.6vw, 60px);
+    align-content: center;
+    z-index: 2;
+    border-top: 1px solid var(--ink);
+    margin-bottom: clamp(40px, 6vh, 80px);
+  }
+  .row-i { display: contents; }
+  .row-i > div {
+    padding: clamp(18px, 2.2vh, 26px) 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .row-i:first-child > div { border-top: none; }
+  .row-i .layer {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    align-self: center;
+  }
+  .row-i .tech {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(24px, 2.1vw, 32px);
+    color: var(--ink);
+    align-self: center;
+    letter-spacing: -0.015em;
+  }
+  .row-i .tech .a { color: var(--accent); font-style: italic; }
+  .row-i .file {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-3);
+    align-self: center;
+    text-align: right;
+    letter-spacing: 0.02em;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 6 · LIVE DEMO
+     ═══════════════════════════════════════════════════════════ */
+  .s6 { justify-content: center; }
+  .s6 .live-demo-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    z-index: 2;
+  }
+  .live-demo-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(120px, 16vw, 260px);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    padding-bottom: 0.06em;
+  }
+  .live-demo-title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .live-demo-sub {
+    margin: clamp(20px, 2.6vh, 32px) 0 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(22px, 2vw, 30px);
+    color: var(--ink-2);
+    line-height: 1.4;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDES 7-9 · SECURITY DEMO
+     ═══════════════════════════════════════════════════════════ */
+  /* demo slides: tighter title so terminal doesn't crowd */
+  .s-demo h2.section {
+    font-size: clamp(40px, 5vw, 68px);
+    max-width: 22ch;
+  }
+  .s-demo .center-col { margin-bottom: clamp(24px, 3vh, 36px); }
+
+  .demo {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: clamp(32px, 4vw, 60px);
+    align-items: stretch;
+    z-index: 2;
+  }
+  .terminal {
+    background: var(--ink);
+    border-radius: 4px;
+    padding: clamp(28px, 2.8vw, 40px);
+    font-family: var(--mono);
+    font-size: clamp(15px, 1.1vw, 17px);
+    line-height: 1.7;
+    color: #E8E5DC;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+  .terminal::before {
+    content: "● ● ●";
+    position: absolute;
+    top: 16px; left: 20px;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--ink-3);
+  }
+  .terminal .body { margin-top: 10px; }
+  .terminal .p { color: var(--accent-2); }
+  .terminal .ok { color: #B8D4A8; }
+  .terminal .err { color: #E8B4A0; }
+  .terminal .warn { color: var(--accent-2); }
+  .terminal .dim { color: var(--ink-3); }
+
+  .pane {
+    border-top: 1px solid var(--ink);
+    padding: clamp(28px, 3.2vh, 38px) 0 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: clamp(20px, 2.6vh, 30px);
+  }
+  .pane .label {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+  .pane h4 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(28px, 2.5vw, 38px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .pane h4 em { font-style: italic; }
+  .pane .files {
+    margin-top: auto;
+    padding-top: clamp(18px, 2.2vh, 24px);
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .pane .files .f {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .pane .files .f .x {
+    color: var(--ink-3);
+    margin-left: 10px;
+    font-weight: 400;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 10 · RESIDUAL RISK
+     ═══════════════════════════════════════════════════════════ */
+  .s10 .row {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(48px, 5.6vw, 100px);
+    align-items: center;
+    z-index: 2;
+  }
+  .s10 .lhs h2 { max-width: 14ch; }
+  .s10 .rhs {
+    display: flex; flex-direction: column;
+    gap: clamp(22px, 2.8vh, 32px);
+  }
+  .s10 .mit {
+    border-top: 1px solid var(--line);
+    padding-top: clamp(16px, 2vh, 22px);
+  }
+  .s10 .mit .lbl {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin-bottom: 10px;
+  }
+  .s10 .mit .body {
+    font-family: var(--serif);
+    font-size: clamp(18px, 1.3vw, 21px);
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .s10 .mit .body .src {
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 8px;
+    display: block;
+    letter-spacing: 0.02em;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 11 · TEAM
+     ═══════════════════════════════════════════════════════════ */
+  .s11 .team {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(24px, 2.8vw, 40px);
+    align-content: center;
+    z-index: 2;
+  }
+  .person {
+    border-top: 1px solid var(--ink);
+    padding-top: clamp(22px, 2.6vh, 30px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .person .ini {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 38px;
+    color: var(--accent);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .person .name {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(24px, 1.9vw, 30px);
+    color: var(--ink);
+    line-height: 1.1;
+    letter-spacing: -0.018em;
+  }
+  .person .role {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE 12 · KEY DIFFERENCE
+     ═══════════════════════════════════════════════════════════ */
+  .s12 .layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: clamp(48px, 5.4vw, 90px);
+    align-items: center;
+    z-index: 2;
+  }
+  .quote {
+    font-family: var(--serif);
+    font-size: clamp(16px, 1.25vw, 19px);
+    color: var(--ink-2);
+    line-height: 1.55;
+    max-width: 50ch;
+    margin-top: clamp(24px, 2.8vh, 32px);
+    font-weight: 400;
+  }
+  .quote .a { color: var(--accent-ink); font-style: italic; }
+  .files-block {
+    border-top: 1px solid var(--ink);
+    padding-top: clamp(28px, 3.2vh, 38px);
+    display: flex; flex-direction: column;
+    gap: clamp(18px, 2.2vh, 24px);
+  }
+  .files-block .lbl {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+  .files-block .item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .files-block .item .path {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .files-block .item .desc {
+    font-family: var(--serif);
+    font-size: 16px;
+    color: var(--ink-2);
+    line-height: 1.4;
+  }
+
+  @media (max-width: 1000px) {
+    .s2 .row, .s3 .grid, .s10 .row, .s11 .team, .s12 .layout, .demo {
+      grid-template-columns: 1fr !important;
+    }
+    .change { grid-template-columns: 50px 1fr; }
+    .change .file { display: none; }
+    .s5 .table { grid-template-columns: 140px 1fr; }
+    .row-i .file { display: none; }
+    .s1 .footer { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<main class="deck" id="deck">
+
+  <!-- ═══════════════ SLIDE 1: TITLE ═══════════════ -->
+  <section class="slide s1 is-active" data-i="1">
+    <div class="stack">
+
+      <div class="top-row">
+        <div class="wordmark">
+          <!-- Anthropic-style 8-pointed asterisk mark -->
+          <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/>
+          </svg>
+          <span>KeyMasters</span>
+        </div>
+        <div class="doc-id">
+          <span class="row">CSC 327 / Software Security</span>
+          <span class="row">Final Presentation · April 2026</span>
+        </div>
+      </div>
+
+      <div>
+        <h1>Master <span class="it">Key</span></h1>
+        <p class="sub">A self-hosted password manager. Your encrypted credentials, on a machine you actually own.</p>
+      </div>
+
+      <div class="footer">
+        <div class="meta-cell">
+          <div class="label">Author 01</div>
+          <div class="value">Abhishek Ray</div>
+        </div>
+        <div class="meta-cell">
+          <div class="label">Author 02</div>
+          <div class="value">Bibas Kandel</div>
+        </div>
+        <div class="meta-cell">
+          <div class="label">Author 03</div>
+          <div class="value">Nathaniel Miller</div>
+        </div>
+        <div class="meta-cell">
+          <div class="label">Author 04</div>
+          <div class="value">Javokhir Bakhritdinov</div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>01 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 2: PROBLEM ═══════════════ -->
+  <section class="slide s2" data-i="2">
+    <div class="chrome chrome-top">
+      <span>02 · PROBLEM</span>
+      <span>Why this exists</span>
+    </div>
+    <div class="row">
+      <div>
+        <div class="eyebrow">The trust trap</div>
+        <h2 class="section">Reuse passwords, or <em>trust the cloud.</em></h2>
+        <p class="lead">Most users do the first. Commercial password managers fix that, but trade one risk for another: a third-party vault that itself becomes a target.</p>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="num">81%</div>
+          <div class="cap">of breaches involve weak or stolen credentials.<span class="src">Verizon DBIR</span></div>
+        </div>
+        <div class="stat">
+          <div class="num warn">25M+</div>
+          <div class="cap">user vaults exposed in a single recent password-manager breach.</div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>02 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 3: WHAT WE BUILT ═══════════════ -->
+  <section class="slide s3" data-i="3">
+    <div class="chrome chrome-top">
+      <span>03 · WHAT WE BUILT</span>
+      <span>Snapshot</span>
+    </div>
+    <div class="center-col" style="flex: 0 0 auto;">
+      <div class="eyebrow">Snapshot</div>
+      <h2 class="section">A vault. <em>Local file.</em> Nothing leaves the box.</h2>
+    </div>
+    <div class="grid">
+      <div class="feat">
+        <span class="num">001</span>
+        <h3>Master password</h3>
+        <p>Bcrypt + per-user PBKDF2 salt. Plaintext leaves memory the moment login completes.</p>
+      </div>
+      <div class="feat">
+        <span class="num">002</span>
+        <h3>AES-256-GCM at rest</h3>
+        <p>Service, username, password, notes. Every field becomes ciphertext before it touches SQLite.</p>
+      </div>
+      <div class="feat">
+        <span class="num">003</span>
+        <h3>Browser + REST</h3>
+        <p>Jinja2 for humans, FastAPI JSON for tooling. Same auth, same vault.</p>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>03 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 4: WHAT CHANGED ═══════════════ -->
+  <section class="slide s4" data-i="4">
+    <div class="chrome chrome-top">
+      <span>04 · WHAT CHANGED</span>
+      <span>Security audit</span>
+    </div>
+    <div class="center-col" style="flex: 0 0 auto;">
+      <div class="eyebrow">Delta since proposal</div>
+      <h2 class="section">Ten commits. <em>One audit pass.</em></h2>
+    </div>
+    <div class="list">
+      <div class="change">
+        <span class="id">+ 01</span>
+        <span class="what">Encrypted the service field. DB theft now reveals zero metadata</span>
+        <span class="file">app/db/connection.py</span>
+      </div>
+      <div class="change">
+        <span class="id">+ 02</span>
+        <span class="what">Per-username login rate limiting (5 fails / 15 min)</span>
+        <span class="file">app/auth/rate_limiter.py</span>
+      </div>
+      <div class="change">
+        <span class="id">+ 03</span>
+        <span class="what">Cookies auto-flip to <em>secure</em> over HTTPS</span>
+        <span class="file">app/web/auth.py</span>
+      </div>
+      <div class="change">
+        <span class="id">+ 04</span>
+        <span class="what">SQLite <em>secure_delete</em>. Freed pages overwritten</span>
+        <span class="file">app/db/connection.py</span>
+      </div>
+      <div class="change">
+        <span class="id">+ 05</span>
+        <span class="what">Edit form no longer renders the cleartext password into HTML</span>
+        <span class="file">templates/vault/edit.html</span>
+      </div>
+      <div class="change">
+        <span class="id">+ 06</span>
+        <span class="what">Background sweep removes expired session keys from memory</span>
+        <span class="file">app/auth/session_store.py</span>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>04 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 5: TECH STACK ═══════════════ -->
+  <section class="slide s5" data-i="5">
+    <div class="chrome chrome-top">
+      <span>05 · TECH STACK</span>
+      <span>Walkthrough</span>
+    </div>
+    <div class="center-col" style="flex: 0 0 auto;">
+      <div class="eyebrow">Walkthrough</div>
+      <h2 class="section">Each layer maps to <em>one file</em>.</h2>
+    </div>
+    <div class="table">
+      <div class="row-i">
+        <div class="layer">Web</div>
+        <div class="tech">FastAPI <span class="a">+ Pydantic</span></div>
+        <div class="file">app/main.py</div>
+      </div>
+      <div class="row-i">
+        <div class="layer">Templates</div>
+        <div class="tech">Jinja2 <span class="a">· autoescape on</span></div>
+        <div class="file">templates/*.html</div>
+      </div>
+      <div class="row-i">
+        <div class="layer">Database</div>
+        <div class="tech">SQLite <span class="a">· parameterized only</span></div>
+        <div class="file">app/db/repository.py</div>
+      </div>
+      <div class="row-i">
+        <div class="layer">Hashing</div>
+        <div class="tech">bcrypt <span class="a">· cost 12</span></div>
+        <div class="file">app/auth/password.py</div>
+      </div>
+      <div class="row-i">
+        <div class="layer">Key derivation</div>
+        <div class="tech">PBKDF2-HMAC-SHA256 <span class="a">· 600k iters</span></div>
+        <div class="file">app/auth/kdf.py</div>
+      </div>
+      <div class="row-i">
+        <div class="layer">Encryption</div>
+        <div class="tech">AES-256-GCM <span class="a">· fresh nonce per record</span></div>
+        <div class="file">app/crypto/encryption.py</div>
+      </div>
+      <div class="row-i">
+        <div class="layer">Sessions</div>
+        <div class="tech">JWT (HS256) <span class="a">+ in-memory key</span></div>
+        <div class="file">app/auth/session_store.py</div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>05 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 6: LIVE DEMO ═══════════════ -->
+  <section class="slide s6" data-i="6">
+    <div class="chrome chrome-top">
+      <span>06 · LIVE DEMO</span>
+      <span>localhost:8000</span>
+    </div>
+    <div class="live-demo-stack">
+      <div class="eyebrow">Demo</div>
+      <h2 class="live-demo-title"><em>Live</em> Demo.</h2>
+      <p class="live-demo-sub">Register · log in · save · read it back.</p>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>06 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 7: ATTACK 01 ═══════════════ -->
+  <section class="slide s-demo" data-i="7">
+    <div class="chrome chrome-top">
+      <span>07 · ATTACK 01</span>
+      <span>Brute force / login</span>
+    </div>
+    <div class="center-col" style="flex: 0 0 auto;">
+      <div class="eyebrow">Attack &amp; defense</div>
+      <h2 class="section">Brute force the login. <em>Stopped at five.</em></h2>
+    </div>
+    <div class="demo">
+      <div class="terminal">
+<div class="body"><span class="dim"># paste this into a shell — server runs at localhost:8000</span>
+<span class="p">for i in 1 2 3 4 5 6 7; do
+  curl -s -o /dev/null -w "attempt $i → %{http_code}\n" \
+    http://localhost:8000/auth/login \
+    -H 'Content-Type: application/json' \
+    -d "{\"username\":\"alice\",\"master_password\":\"guess$i\"}"
+done</span></div>
+      </div>
+      <div class="pane">
+        <span class="label">What you'll see</span>
+        <h4>Stopped at <em>five</em></h4>
+        <div class="files">
+          <div class="f">attempts 1-5 <span class="x">→ <span class="err">401</span> invalid credentials</span></div>
+          <div class="f">attempt 6+ <span class="x">→ <span class="warn">429</span> too many failed attempts</span></div>
+          <div class="f">window <span class="x">→ 5 fails / 15 min, per username</span></div>
+          <div class="f">defense <span class="x">→ app/auth/rate_limiter.py</span></div>
+          <div class="f">OWASP <span class="x">→ A07:2021 Auth Failures</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>07 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 8: ATTACK 02 ═══════════════ -->
+  <section class="slide s-demo" data-i="8">
+    <div class="chrome chrome-top">
+      <span>08 · ATTACK 02</span>
+      <span>DB theft / cryptographic failure</span>
+    </div>
+    <div class="center-col" style="flex: 0 0 auto;">
+      <div class="eyebrow">Attack &amp; defense</div>
+      <h2 class="section">Steal the database. <em>Read nothing.</em></h2>
+    </div>
+    <div class="demo">
+      <div class="terminal">
+<div class="body"><span class="dim"># attacker has the file — open it directly with sqlite3</span>
+<span class="p">sqlite3 master_key.sqlite \
+  "SELECT id, hex(service_enc), hex(password_enc) FROM credentials LIMIT 1;"
+
+sqlite3 master_key.sqlite \
+  "SELECT username, hex(bcrypt_hash) FROM users LIMIT 1;"
+
+strings master_key.sqlite \
+  | grep -iE 'github|hunter2' \
+  || echo '[no plaintext credentials found]'</span></div>
+      </div>
+      <div class="pane">
+        <span class="label">What you'll see</span>
+        <h4>Read <em>nothing</em></h4>
+        <div class="files">
+          <div class="f">credentials <span class="x">→ <span class="warn">hex blobs only</span></span></div>
+          <div class="f">users.bcrypt_hash <span class="x">→ <span class="warn">$2b$ hash</span></span></div>
+          <div class="f">strings | grep <span class="x">→ <span class="ok">[no plaintext]</span></span></div>
+          <div class="f">cipher <span class="x">→ AES-256-GCM, random nonce + tag</span></div>
+          <div class="f">key <span class="x">→ PBKDF2-SHA256 · 600k iters</span></div>
+          <div class="f">OWASP <span class="x">→ A02:2021 Crypto Failures</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>08 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 9: ATTACK 03 ═══════════════ -->
+  <section class="slide s-demo" data-i="9">
+    <div class="chrome chrome-top">
+      <span>09 · ATTACK 03</span>
+      <span>CSRF / injection</span>
+    </div>
+    <div class="center-col" style="flex: 0 0 auto;">
+      <div class="eyebrow">Attack &amp; defense</div>
+      <h2 class="section">Cross-site request forgery. <em>Refused.</em></h2>
+    </div>
+    <div class="demo">
+      <div class="terminal">
+<div class="body"><span class="dim"># one-time setup: log in and capture the session jar</span>
+<span class="p">JAR=/tmp/mk.jar; B=http://localhost:8000
+TOK=$(curl -sc $JAR -b $JAR $B/login \
+  | grep -oE 'value="[^"]+"' | head -1 \
+  | tr -d '"' | sed 's/value=//')
+curl -sc $JAR -b $JAR -XPOST $B/login \
+  -d "username=alice&amp;master_password=Correct!horse1&amp;_csrf=$TOK" \
+  -o /dev/null -w "login → %{http_code}\n"</span>
+
+<span class="dim"># attack: reuse the session cookie, drop the csrf token</span>
+<span class="p">curl -sb $JAR -XPOST $B/vault/new \
+  -d 'service=evil&amp;password=x' \
+  -o /dev/null -w "no csrf → %{http_code}\n"</span></div>
+      </div>
+      <div class="pane">
+        <span class="label">What you'll see</span>
+        <h4><em>Refused</em></h4>
+        <div class="files">
+          <div class="f">login <span class="x">→ <span class="ok">303</span> /vault</span></div>
+          <div class="f">no csrf <span class="x">→ <span class="err">403</span> csrf failed</span></div>
+          <div class="f">strategy <span class="x">→ double-submit cookie + samesite=strict</span></div>
+          <div class="f">defense <span class="x">→ app/web/csrf.py</span></div>
+          <div class="f">XSS <span class="x">→ Jinja autoescape on every render</span></div>
+          <div class="f">OWASP <span class="x">→ A01 Broken Access · A03 Injection</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>09 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 10: RESIDUAL RISK ═══════════════ -->
+  <section class="slide s10" data-i="10">
+    <div class="chrome chrome-top">
+      <span>10 · RESIDUAL RISK</span>
+      <span>Honest postmortem</span>
+    </div>
+    <div class="row">
+      <div class="lhs">
+        <div class="eyebrow">Reframed</div>
+        <h2 class="section">The key lives in <em>process memory.</em></h2>
+        <p class="lead">We proposed a weak master password as the biggest risk. After building it, the bigger architectural residual is the server-side encryption model: while a session is active, the decryption key sits in RAM.</p>
+      </div>
+      <div class="rhs">
+        <div class="mit">
+          <div class="lbl">Mitigation 01 · TTL</div>
+          <div class="body">Sessions expire 15 minutes after creation, no sliding refresh.<span class="src">app/config.py · session_ttl_minutes</span></div>
+        </div>
+        <div class="mit">
+          <div class="lbl">Mitigation 02 · Logout</div>
+          <div class="body">Explicit logout drops the key from the in-memory store.<span class="src">app/auth/session_store.py · delete()</span></div>
+        </div>
+        <div class="mit">
+          <div class="lbl">Mitigation 03 · Sweep</div>
+          <div class="body">Background thread evicts expired keys every 60 seconds.<span class="src">app/auth/session_store.py · _sweep()</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>10 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 11: TEAM ═══════════════ -->
+  <section class="slide s11" data-i="11">
+    <div class="chrome chrome-top">
+      <span>11 · WORK DISTRIBUTION</span>
+      <span>git shortlog</span>
+    </div>
+    <div class="center-col" style="flex: 0 0 auto;">
+      <div class="eyebrow">Who owned what</div>
+      <h2 class="section">Four humans. <em>One vault.</em></h2>
+    </div>
+    <div class="team">
+      <div class="person">
+        <div class="name">Abhishek Ray</div>
+        <div class="role">Frontend · Validation</div>
+      </div>
+      <div class="person">
+        <div class="name">Bibas Kandel</div>
+        <div class="role">Backend · Auth</div>
+      </div>
+      <div class="person">
+        <div class="name">Nathaniel Miller</div>
+        <div class="role">Database · Crypto</div>
+      </div>
+      <div class="person">
+        <div class="name">Javokhir Bakhritdinov</div>
+        <div class="role">Adversarial</div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>11 / 12</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SLIDE 12: KEY DIFFERENCE ═══════════════ -->
+  <section class="slide s12" data-i="12">
+    <div class="chrome chrome-top">
+      <span>12 · KEY DIFFERENCE</span>
+      <span>vs. tutorial CRUD</span>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="eyebrow">The key idea</div>
+        <h2 class="section">We <em>derive</em> the key.<br/>We never <em>store</em> it.</h2>
+        <p class="quote">A tutorial CRUD app stores a password in a column. We don't. PBKDF2 rebuilds the encryption key from the master password and a per-user salt at login. <span class="a">It lives in RAM. Process restart, key gone.</span></p>
+      </div>
+      <div class="files-block">
+        <div class="lbl">Three files. The whole idea.</div>
+        <div class="item">
+          <div class="path">app/auth/kdf.py</div>
+          <div class="desc">Derives the 32-byte key at login</div>
+        </div>
+        <div class="item">
+          <div class="path">app/auth/session_store.py</div>
+          <div class="desc">Holds it in memory only</div>
+        </div>
+        <div class="item">
+          <div class="path">app/crypto/encryption.py</div>
+          <div class="desc">Uses it for AES-256-GCM</div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome chrome-bot">
+      <span class="mark-row">
+        <svg class="asterisk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L13 11 L24 12 L13 13 L12 24 L11 13 L0 12 L11 11 Z"/></svg>
+        Master Key
+      </span>
+      <span>12 / 12 · fin</span>
+    </div>
+  </section>
+
+</main>
+
+<nav class="ctrls" aria-label="slide navigation">
+  <button id="prev" aria-label="previous slide">‹</button>
+  <button id="next" aria-label="next slide">›</button>
+</nav>
+
+<script>
+  class Deck {
+    constructor(root) {
+      this.slides = [...root.querySelectorAll('.slide')];
+      this.idx = 0;
+      this._wheelLock = false;
+
+      window.addEventListener('keydown', (e) => {
+        if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); this.next(); }
+        if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key))            { e.preventDefault(); this.prev(); }
+        if (e.key === 'Home') { e.preventDefault(); this.go(0); }
+        if (e.key === 'End')  { e.preventDefault(); this.go(this.slides.length - 1); }
+      });
+
+      window.addEventListener('wheel', (e) => {
+        if (this._wheelLock) return;
+        if (Math.abs(e.deltaY) < 24) return;
+        this._wheelLock = true;
+        if (e.deltaY > 0) this.next(); else this.prev();
+        setTimeout(() => { this._wheelLock = false; }, 700);
+      }, { passive: true });
+
+      let startY = 0;
+      window.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+      window.addEventListener('touchend', (e) => {
+        const dy = (e.changedTouches[0].clientY - startY);
+        if (Math.abs(dy) < 60) return;
+        if (dy < 0) this.next(); else this.prev();
+      }, { passive: true });
+
+      document.getElementById('prev').addEventListener('click', () => this.prev());
+      document.getElementById('next').addEventListener('click', () => this.next());
+
+      this._render();
+    }
+    next() { this.go(Math.min(this.idx + 1, this.slides.length - 1)); }
+    prev() { this.go(Math.max(this.idx - 1, 0)); }
+    go(i) { if (i === this.idx) return; this.idx = i; this._render(); }
+    _render() {
+      this.slides.forEach((s, i) => s.classList.toggle('is-active', i === this.idx));
+    }
+  }
+  document.addEventListener('DOMContentLoaded', () => new Deck(document.getElementById('deck')));
+</script>
+</body>
+</html>
