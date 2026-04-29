@@ -641,8 +641,31 @@
   /* ═══════════════════════════════════════════════════════════
      SLIDE 11 · TEAM
      ═══════════════════════════════════════════════════════════ */
-  .s11 .team {
+  .s11 .s11-top {
+    display: flex;
+    gap: clamp(32px, 3.5vw, 56px);
     flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .s11 .s11-img {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+  }
+  .s11 .s11-img-inner {
+    position: relative;
+    width: 100%;
+  }
+  .s11 .s11-img-inner img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .s11 .team {
+    flex: 0 0 auto;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: clamp(24px, 2.8vw, 40px);
@@ -679,6 +702,17 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--ink-3);
+  }
+  .s11-note {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 12px);
+    width: 120px;
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--ink-3);
+    font-style: italic;
+    line-height: 1.4;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -1177,9 +1211,17 @@ curl -sc $JAR -b $JAR -X POST $B/login \
       <span>11 · WORK DISTRIBUTION</span>
       <span>git shortlog</span>
     </div>
-    <div class="center-col" style="flex: 0 0 auto;">
-      <div class="eyebrow">Who owned what</div>
-      <h2 class="section">Four humans. <em>One vault.</em></h2>
+    <div class="s11-top">
+      <div class="center-col">
+        <div class="eyebrow">Who owned what</div>
+        <h2 class="section">Four humans. <em>One vault.</em></h2>
+      </div>
+      <div class="s11-img">
+        <div class="s11-img-inner">
+          <img src="static/contribution.png" alt="Work contribution" />
+          <div class="s11-note">† Nathaniel's diff is large due to his venv being committed by mistake, then deleted in an early commit</div>
+        </div>
+      </div>
     </div>
     <div class="team">
       <div class="person">
